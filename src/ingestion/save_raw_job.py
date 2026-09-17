@@ -7,7 +7,7 @@ from src.database.models import RawJobPosting
 from src.database.session import engine
 
 
-def save_raw_job(session: Session, job: dict, company: str) -> bool:
+def save_raw_job(session: Session, job: dict, source: str) -> bool:
     source_created_at = None
 
     if job.get("createdAt"):
@@ -19,8 +19,8 @@ def save_raw_job(session: Session, job: dict, company: str) -> bool:
     stmt = (
         insert(RawJobPosting)
         .values(
-            source="lever",
-            source_company=company,
+            source=source["source_type"],
+            source_company=source["company"],
             source_job_id=job["id"],
             source_url=job.get("hostedUrl"),
             apply_url=job.get("applyUrl"),

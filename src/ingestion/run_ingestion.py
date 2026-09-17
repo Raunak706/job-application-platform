@@ -46,7 +46,7 @@ def main():
                 if save_raw_job(
                     session=session,
                     job=job,
-                    company=company,
+                    source=source,
                 ):
                     inserted += 1
                 else:
