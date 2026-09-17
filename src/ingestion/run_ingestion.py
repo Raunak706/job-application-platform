@@ -15,6 +15,8 @@ def main():
     inserted = 0
     skipped = 0
     filtered = 0
+    source_errors = 0
+    job_errors = 0
 
     with Session(engine) as session:
         for source in SOURCES:
@@ -54,13 +56,15 @@ def main():
                             skipped += 1
 
                     except Exception as exc:
+                        job_errors += 1
                         print(
                             f"Error processing job from {company}: "
                             f"{type(exc).__name__}: {exc}"
                         )
                         continue
-                    
+
             except Exception as exc:
+                source_errors += 1
                 company = source.get("company", "unknown")
                 print(
                     f"Error ingesting {company}: "
@@ -74,7 +78,9 @@ def main():
         f"\nFinished ingestion. "
         f"Inserted={inserted}, "
         f"Skipped={skipped}, "
-        f"Filtered={filtered}"
+        f"Filtered={filtered}, "
+        f"Source errors={source_errors}, "
+        f"Job errors={job_errors}"
     )
 
 
