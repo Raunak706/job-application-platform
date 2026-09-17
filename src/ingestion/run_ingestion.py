@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from src.database.session import engine
-from src.ingestion.lever_adapter import fetch_source_jobs
+from src.ingestion.lever_adapter import fetch_source_jobs, to_raw_record
 from src.ingestion.relevance_filter import is_relevant
 from src.ingestion.save_raw_job import save_raw_job
 from src.ingestion.source_registry import SOURCES
@@ -39,14 +39,15 @@ def main():
             print(f"Jobs discovered: {len(jobs)}")
 
             for job in jobs:
-                if not is_relevant(job.get("text", "")):
+                record = to_raw_record(job, source)
+
+                if not is_relevant(record["title"]):
                     filtered += 1
                     continue
 
                 if save_raw_job(
                     session=session,
-                    job=job,
-                    source=source,
+                    record=record,
                 ):
                     inserted += 1
                 else:
