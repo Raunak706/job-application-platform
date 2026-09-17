@@ -1,29 +1,7 @@
-import json
-
-import requests
-
 from src.ingestion.relevance_filter import is_relevant
 from src.ingestion.source_registry import SOURCES
 
-
-def fetch_jobs(company: str, limit: int = 10) -> list[dict]:
-    url = f"https://api.lever.co/v0/postings/{company}"
-
-    params = {
-        "mode": "json",
-        "limit": limit,
-    }
-
-    response = requests.get(
-        url,
-        params=params,
-        timeout=30,
-    )
-
-    response.raise_for_status()
-
-    return response.json()
-
+from src.ingestion.lever_adapter import fetch_source_jobs
 
 def main():
     for source in SOURCES:
@@ -38,7 +16,7 @@ def main():
 
         print(f"\nChecking: {company}")
 
-        jobs = fetch_jobs(company)
+        jobs = fetch_source_jobs(source)
 
         print(f"Jobs discovered: {len(jobs)}")
 
