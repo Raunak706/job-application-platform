@@ -38,20 +38,28 @@ def main():
                 print(f"Jobs discovered: {len(jobs)}")
 
                 for job in jobs:
-                    record = to_raw_record(job, source)
+                    try:
+                        record = to_raw_record(job, source)
 
-                    if not is_relevant(record["title"]):
-                        filtered += 1
+                        if not is_relevant(record["title"]):
+                            filtered += 1
+                            continue
+
+                        if save_raw_job(
+                            session=session,
+                            record=record,
+                        ):
+                            inserted += 1
+                        else:
+                            skipped += 1
+
+                    except Exception as exc:
+                        print(
+                            f"Error processing job from {company}: "
+                            f"{type(exc).__name__}: {exc}"
+                        )
                         continue
-
-                    if save_raw_job(
-                        session=session,
-                        record=record,
-                    ):
-                        inserted += 1
-                    else:
-                        skipped += 1
-
+                    
             except Exception as exc:
                 company = source.get("company", "unknown")
                 print(
