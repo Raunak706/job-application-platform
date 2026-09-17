@@ -6,6 +6,10 @@ from src.ingestion.relevance_filter import is_relevant
 from src.ingestion.save_raw_job import save_raw_job
 from src.ingestion.source_registry import SOURCES
 
+ADAPTERS = {
+    "lever": fetch_source_jobs,
+}
+
 
 def main():
     inserted = 0
@@ -17,14 +21,20 @@ def main():
             if not source["enabled"]:
                 continue
 
-            if source["source_type"] != "lever":
+            adapter = ADAPTERS.get(source["source_type"])
+
+            if adapter is None:
+                print(
+                    f"Skipping unsupported source type: "
+                    f"{source['source_type']}"
+                )
                 continue
 
             company = source["company"]
 
             print(f"\nIngesting: {company}")
 
-            jobs = fetch_source_jobs(source)
+            jobs = adapter(source)
 
             print(f"Jobs discovered: {len(jobs)}")
 
