@@ -21,37 +21,44 @@ def main():
             if not source["enabled"]:
                 continue
 
-            adapter = ADAPTERS.get(source["source_type"])
+            try:
+                adapter = ADAPTERS.get(source["source_type"])
 
-            if adapter is None:
-                print(
-                    f"Skipping unsupported source type: "
-                    f"{source['source_type']}"
-                )
-                continue
-
-            company = source["company"]
-
-            print(f"\nIngesting: {company}")
-
-            jobs = adapter(source)
-
-            print(f"Jobs discovered: {len(jobs)}")
-
-            for job in jobs:
-                record = to_raw_record(job, source)
-
-                if not is_relevant(record["title"]):
-                    filtered += 1
+                if adapter is None:
+                    print(
+                        f"Skipping unsupported source type: "
+                        f"{source['source_type']}"
+                    )
                     continue
 
-                if save_raw_job(
-                    session=session,
-                    record=record,
-                ):
-                    inserted += 1
-                else:
-                    skipped += 1
+                company = source["company"]
+                print(f"\nIngesting: {company}")
+
+                jobs = adapter(source)
+                print(f"Jobs discovered: {len(jobs)}")
+
+                for job in jobs:
+                    record = to_raw_record(job, source)
+
+                    if not is_relevant(record["title"]):
+                        filtered += 1
+                        continue
+
+                    if save_raw_job(
+                        session=session,
+                        record=record,
+                    ):
+                        inserted += 1
+                    else:
+                        skipped += 1
+
+            except Exception as exc:
+                company = source.get("company", "unknown")
+                print(
+                    f"Error ingesting {company}: "
+                    f"{type(exc).__name__}: {exc}"
+                )
+                continue
 
         session.commit()
 
