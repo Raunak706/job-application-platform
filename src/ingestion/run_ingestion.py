@@ -39,7 +39,7 @@ def main():
             print(f"Jobs discovered: {len(jobs)}")
 
             for job in jobs:
-                if not is_relevant(job):
+                if not is_relevant(job.get("text", "")):
                     filtered += 1
                     continue
 

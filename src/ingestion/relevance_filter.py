@@ -26,8 +26,8 @@ EXCLUDED_SENIORITY = [
 ]
 
 
-def is_relevant(job: dict) -> bool:
-    title = job.get("text", "").lower()
+def is_relevant(title: str) -> bool:
+    title = title.lower()
 
     if any(
         seniority in title

@@ -23,7 +23,7 @@ def main():
         relevant_jobs = [
             job
             for job in jobs
-            if is_relevant(job)
+            if is_relevant(job.get("text", ""))
         ]
 
         print(
