@@ -1,0 +1,54 @@
+import requests
+
+
+def fetch_jobs(company: str) -> list[dict]:
+    url = f"https://boards-api.greenhouse.io/v1/boards/{company}/jobs"
+
+    response = requests.get(
+        url,
+        timeout=30,
+    )
+    response.raise_for_status()
+
+    data = response.json()
+    return data.get("jobs", [])
+
+
+def fetch_source_jobs(
+    source: dict,
+) -> list[dict]:
+    if source["source_type"] != "greenhouse":
+        raise ValueError(
+            "Greenhouse adapter received a non-Greenhouse source."
+        )
+
+    jobs = fetch_jobs(
+        company=source["company"],
+    )
+
+    return jobs
+
+from datetime import datetime
+
+
+def to_raw_record(
+    job: dict,
+    source: dict,
+) -> dict:
+    source_created_at = None
+
+    if job.get("first_published"):
+        source_created_at = datetime.fromisoformat(
+            job["first_published"]
+        )
+
+    return {
+        "source": source["source_type"],
+        "source_company": source["company"],
+        "source_job_id": str(job["id"]),
+        "source_url": job.get("absolute_url"),
+        "apply_url": job.get("absolute_url"),
+        "source_created_at": source_created_at,
+        "title": job.get("title", ""),
+        "raw_payload": job,
+    }

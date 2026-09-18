@@ -5,11 +5,20 @@ from src.ingestion.lever_adapter import fetch_source_jobs, to_raw_record
 from src.ingestion.relevance_filter import is_relevant
 from src.ingestion.save_raw_job import save_raw_job
 from src.ingestion.source_registry import SOURCES
-
+from src.ingestion.greenhouse_adapter import (
+    fetch_source_jobs as fetch_greenhouse_jobs,
+    to_raw_record as greenhouse_to_raw_record,
+)
 ADAPTERS = {
-    "lever": fetch_source_jobs,
+    "lever": {
+        "fetch": fetch_source_jobs,
+        "to_raw_record": to_raw_record,
+    },
+    "greenhouse": {
+        "fetch": fetch_greenhouse_jobs,
+        "to_raw_record": greenhouse_to_raw_record,
+    },
 }
-
 
 def main():
     inserted = 0
@@ -36,12 +45,12 @@ def main():
                 company = source["company"]
                 print(f"\nIngesting: {company}")
 
-                jobs = adapter(source)
+                jobs = adapter["fetch"](source)
                 print(f"Jobs discovered: {len(jobs)}")
 
                 for job in jobs:
                     try:
-                        record = to_raw_record(job, source)
+                        record = adapter["to_raw_record"](job, source)
 
                         if not is_relevant(record["title"]):
                             filtered += 1

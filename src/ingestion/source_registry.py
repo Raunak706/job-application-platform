@@ -14,4 +14,14 @@ SOURCES = [
         "company": "applydigital",
         "enabled": True,
     },
+    {
+        "source_type": "lever",
+        "company": "sep",
+        "enabled": True,
+    },
+    {
+    "source_type": "greenhouse",
+    "company": "anthropic",
+    "enabled": True,
+    },
 ]
