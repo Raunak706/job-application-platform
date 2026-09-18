@@ -26,9 +26,12 @@ EXCLUDED_SENIORITY = [
 ]
 
 
-def is_relevant(title: str) -> bool:
-    title = title.lower()
+def is_relevant(title: str | None) -> bool:
+    if not isinstance(title, str):
+        return False
 
+    title = title.lower()
+    
     if any(
         seniority in title
         for seniority in EXCLUDED_SENIORITY

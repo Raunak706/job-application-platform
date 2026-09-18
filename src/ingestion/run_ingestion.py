@@ -1,24 +1,13 @@
 from sqlalchemy.orm import Session
 
 from src.database.session import engine
-from src.ingestion.lever_adapter import fetch_source_jobs, to_raw_record
 from src.ingestion.relevance_filter import is_relevant
 from src.ingestion.save_raw_job import save_raw_job
 from src.ingestion.source_registry import SOURCES
-from src.ingestion.greenhouse_adapter import (
-    fetch_source_jobs as fetch_greenhouse_jobs,
-    to_raw_record as greenhouse_to_raw_record,
-)
-ADAPTERS = {
-    "lever": {
-        "fetch": fetch_source_jobs,
-        "to_raw_record": to_raw_record,
-    },
-    "greenhouse": {
-        "fetch": fetch_greenhouse_jobs,
-        "to_raw_record": greenhouse_to_raw_record,
-    },
-}
+
+
+from src.ingestion.adapter_registry import ADAPTERS
+
 
 def main():
     inserted = 0
@@ -56,10 +45,13 @@ def main():
                             filtered += 1
                             continue
 
-                        if save_raw_job(
-                            session=session,
-                            record=record,
-                        ):
+                        with session.begin_nested():
+                            was_inserted = save_raw_job(
+                                session=session,
+                                record=record,
+                            )
+
+                        if was_inserted:
                             inserted += 1
                         else:
                             skipped += 1

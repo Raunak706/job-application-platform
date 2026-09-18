@@ -51,7 +51,13 @@ def main():
                 record = enrich_job(record)
                 record = canonicalize_job(record)
 
-                if save_job(session, record):
+                with session.begin_nested():
+                    was_inserted = save_job(
+                        session,
+                        record,
+                    )
+
+                if was_inserted:
                     normalized += 1
                 else:
                     print(

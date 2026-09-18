@@ -1,3 +1,6 @@
+from re import escape, search
+
+
 US_STATE_ABBREVIATIONS = {
     "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
     "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
@@ -6,6 +9,7 @@ US_STATE_ABBREVIATIONS = {
     "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
     "DC",
 }
+
 
 COUNTRY_NAME_MAPPING = {
     "united states": "US",
@@ -30,7 +34,9 @@ def enrich_job(record: dict) -> dict:
     location_lower = location.lower()
 
     for country_name, country_code in COUNTRY_NAME_MAPPING.items():
-        if country_name in location_lower:
+        pattern = rf"(?<!\w){escape(country_name)}(?!\w)"
+
+        if search(pattern, location_lower):
             enriched["country"] = country_code
             return enriched
 

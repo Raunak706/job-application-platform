@@ -1,17 +1,21 @@
-import requests
+from datetime import datetime
+from src.ingestion.http_client import create_retry_session
 
 
 def fetch_jobs(company: str) -> list[dict]:
     url = f"https://boards-api.greenhouse.io/v1/boards/{company}/jobs"
 
-    response = requests.get(
-        url,
-        params={"content": "true"},
-        timeout=30,
-    )
+    with create_retry_session() as session:
+        response = session.get(
+            url,
+            params={"content": "true"},
+            timeout=30,
+        )
+
     response.raise_for_status()
 
     data = response.json()
+
     return data.get("jobs", [])
 
 
@@ -28,8 +32,6 @@ def fetch_source_jobs(
     )
 
     return jobs
-
-from datetime import datetime
 
 
 def to_raw_record(

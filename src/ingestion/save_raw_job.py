@@ -4,11 +4,9 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from src.database.models import RawJobPosting
-from src.database.session import engine
 
 
 def save_raw_job(session: Session, record: dict,) -> bool:
-    source_created_at = None
 
     stmt = (
         insert(RawJobPosting)
