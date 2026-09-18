@@ -65,6 +65,14 @@ class RawJobPosting(Base):
 
 class Job(Base):
     __tablename__ = "jobs"
+    
+    __table_args__ = (
+        UniqueConstraint(
+            "source",
+            "source_job_id",
+            name="uq_jobs_source_job_id",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(
         primary_key=True

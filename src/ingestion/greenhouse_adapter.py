@@ -6,6 +6,7 @@ def fetch_jobs(company: str) -> list[dict]:
 
     response = requests.get(
         url,
+        params={"content": "true"},
         timeout=30,
     )
     response.raise_for_status()
@@ -44,7 +45,7 @@ def to_raw_record(
 
     return {
         "source": source["source_type"],
-        "source_company": source["company"],
+        "source_company": source.get("company_name", source["company"]),
         "source_job_id": str(job["id"]),
         "source_url": job.get("absolute_url"),
         "apply_url": job.get("absolute_url"),

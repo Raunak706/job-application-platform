@@ -63,15 +63,15 @@ def to_raw_record(
         source_created_at = datetime.fromtimestamp(
             job["createdAt"] / 1000,
             tz=timezone.utc,
-        )
+    )
 
     return {
-        "source": source["source_type"],
-        "source_company": source["company"],
-        "source_job_id": job["id"],
-        "source_url": job.get("hostedUrl"),
-        "apply_url": job.get("applyUrl"),
-        "source_created_at": source_created_at,
-        "title": job.get("text", ""),
-        "raw_payload": job,
-    }
+    "source": source["source_type"],
+    "source_company": source.get("company_name", source["company"]),
+    "source_job_id": job["id"],
+    "source_url": job.get("hostedUrl"),
+    "apply_url": job.get("applyUrl"),
+    "source_created_at": source_created_at,
+    "title": job.get("text", ""),
+    "raw_payload": job,
+}
