@@ -415,3 +415,305 @@ def test_add_project(session_factory):
     assert result.projects[0].status == "active"
     assert result.projects[0].verification_status == "verified"
     assert result.projects[0].visibility == "resume_safe"
+
+def test_add_education(session_factory):
+    with session_factory() as session:
+        candidate = Candidate(
+            display_name="Education Test",
+            status="active",
+        )
+        session.add(candidate)
+        session.flush()
+
+        session.add(
+            CandidateProfile(
+                candidate_id=candidate.id,
+            )
+        )
+        session.commit()
+
+        candidate_id = candidate.id
+
+    service = CandidateProfileService(
+        session_factory=session_factory,
+    )
+
+    result = service.add_education(
+        candidate_id,
+        institution="Example University",
+        degree="Bachelor of Science",
+        field_of_study="Computer Science",
+        education_level="bachelors",
+        location="New Jersey",
+        country="US",
+        gpa="3.8",
+        verification_status="verified",
+        visibility="resume_safe",
+    )
+
+    assert len(result.education) == 1
+    assert result.education[0].institution == "Example University"
+    assert result.education[0].degree == "Bachelor of Science"
+    assert result.education[0].field_of_study == "Computer Science"
+    assert result.education[0].gpa == "3.8"
+    assert result.education[0].verification_status == "verified"
+    assert result.education[0].visibility == "resume_safe"
+
+
+def test_add_certification(session_factory):
+    with session_factory() as session:
+        candidate = Candidate(
+            display_name="Certification Test",
+            status="active",
+        )
+        session.add(candidate)
+        session.flush()
+
+        session.add(
+            CandidateProfile(
+                candidate_id=candidate.id,
+            )
+        )
+        session.commit()
+
+        candidate_id = candidate.id
+
+    service = CandidateProfileService(
+        session_factory=session_factory,
+    )
+
+    result = service.add_certification(
+        candidate_id,
+        name="Example Certification",
+        issuer="Example Organization",
+        credential_id="CERT-123",
+        credential_url="https://example.com/certification",
+        verification_status="verified",
+        visibility="resume_safe",
+    )
+
+    assert len(result.certifications) == 1
+    assert result.certifications[0].name == "Example Certification"
+    assert result.certifications[0].issuer == "Example Organization"
+    assert result.certifications[0].credential_id == "CERT-123"
+    assert result.certifications[0].verification_status == "verified"
+
+
+def test_add_achievement(session_factory):
+    with session_factory() as session:
+        candidate = Candidate(
+            display_name="Achievement Test",
+            status="active",
+        )
+        session.add(candidate)
+        session.flush()
+
+        session.add(
+            CandidateProfile(
+                candidate_id=candidate.id,
+            )
+        )
+        session.commit()
+
+        candidate_id = candidate.id
+
+    service = CandidateProfileService(
+        session_factory=session_factory,
+    )
+
+    profile = service.add_experience(
+        candidate_id,
+        company="Example Company",
+        title="Data Engineer",
+    )
+
+    experience_id = profile.experiences[0].id
+
+    result = service.add_achievement(
+        candidate_id,
+        experience_id=experience_id,
+        title="Pipeline Improvement",
+        description="Improved pipeline reliability.",
+        metric_text="Reduced failures by 50%",
+        verification_status="verified",
+        visibility="resume_safe",
+    )
+
+    assert len(result.achievements) == 1
+    assert result.achievements[0].experience_id == experience_id
+    assert result.achievements[0].title == "Pipeline Improvement"
+    assert result.achievements[0].metric_text == "Reduced failures by 50%"
+
+
+def test_achievement_rejects_other_candidates_parent(
+    session_factory,
+):
+    with session_factory() as session:
+        candidate_a = Candidate(
+            display_name="Achievement Candidate A",
+            status="active",
+        )
+        candidate_b = Candidate(
+            display_name="Achievement Candidate B",
+            status="active",
+        )
+
+        session.add_all([candidate_a, candidate_b])
+        session.flush()
+
+        session.add_all(
+            [
+                CandidateProfile(candidate_id=candidate_a.id),
+                CandidateProfile(candidate_id=candidate_b.id),
+            ]
+        )
+
+        session.commit()
+
+        candidate_a_id = candidate_a.id
+        candidate_b_id = candidate_b.id
+
+    service = CandidateProfileService(
+        session_factory=session_factory,
+    )
+
+    profile_a = service.add_experience(
+        candidate_a_id,
+        company="Candidate A Company",
+        title="Engineer",
+    )
+
+    experience_a_id = profile_a.experiences[0].id
+
+    with pytest.raises(CandidateProfileIntegrityError):
+        service.add_achievement(
+            candidate_b_id,
+            experience_id=experience_a_id,
+            description="Invalid cross-candidate achievement.",
+        )
+
+
+def test_add_preference(session_factory):
+    with session_factory() as session:
+        candidate = Candidate(
+            display_name="Preference Test",
+            status="active",
+        )
+        session.add(candidate)
+        session.flush()
+
+        session.add(
+            CandidateProfile(
+                candidate_id=candidate.id,
+            )
+        )
+        session.commit()
+
+        candidate_id = candidate.id
+
+    service = CandidateProfileService(
+        session_factory=session_factory,
+    )
+
+    result = service.add_preference(
+        candidate_id,
+        category="workplace",
+        preference_key="workplace_types",
+        value_json={
+            "values": ["remote", "hybrid"],
+        },
+        priority="high",
+    )
+
+    assert len(result.preferences) == 1
+    assert result.preferences[0].category == "workplace"
+    assert result.preferences[0].preference_key == "workplace_types"
+    assert result.preferences[0].value_json == {
+        "values": ["remote", "hybrid"],
+    }
+    assert result.preferences[0].priority == "high"
+    assert result.preferences[0].is_active is True
+
+
+def test_add_story(session_factory):
+    with session_factory() as session:
+        candidate = Candidate(
+            display_name="Story Test",
+            status="active",
+        )
+        session.add(candidate)
+        session.flush()
+
+        session.add(
+            CandidateProfile(
+                candidate_id=candidate.id,
+            )
+        )
+        session.commit()
+
+        candidate_id = candidate.id
+
+    service = CandidateProfileService(
+        session_factory=session_factory,
+    )
+
+    result = service.add_story(
+        candidate_id,
+        title="Production Incident",
+        story_type="star",
+        situation="A production pipeline failed.",
+        task="Restore processing safely.",
+        action="Diagnosed and corrected the failure.",
+        result="Processing recovered.",
+        summary="Resolved a production pipeline incident.",
+        verification_status="verified",
+        visibility="internal",
+    )
+
+    assert len(result.stories) == 1
+    assert result.stories[0].title == "Production Incident"
+    assert result.stories[0].story_type == "star"
+    assert result.stories[0].result == "Processing recovered."
+    assert result.stories[0].verification_status == "verified"
+
+
+def test_add_fact(session_factory):
+    with session_factory() as session:
+        candidate = Candidate(
+            display_name="Fact Test",
+            status="active",
+        )
+        session.add(candidate)
+        session.flush()
+
+        session.add(
+            CandidateProfile(
+                candidate_id=candidate.id,
+            )
+        )
+        session.commit()
+
+        candidate_id = candidate.id
+
+    service = CandidateProfileService(
+        session_factory=session_factory,
+    )
+
+    result = service.add_fact(
+        candidate_id,
+        category="eligibility",
+        fact_key="work_authorization",
+        value_text="Authorized to work in the United States",
+        verification_status="verified",
+        confidence=1.0,
+        visibility="application_only",
+        is_sensitive=True,
+    )
+
+    assert len(result.facts) == 1
+    assert result.facts[0].category == "eligibility"
+    assert result.facts[0].fact_key == "work_authorization"
+    assert result.facts[0].verification_status == "verified"
+    assert result.facts[0].confidence == 1.0
+    assert result.facts[0].visibility == "application_only"
+    assert result.facts[0].is_sensitive is True
