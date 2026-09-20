@@ -578,6 +578,97 @@ class CandidateProfileRepository:
             ),
         )
 
+    def update_profile_details(
+        self,
+        candidate_id: int,
+        *,
+        professional_headline: str | None = None,
+        professional_summary: str | None = None,
+        current_location: str | None = None,
+        current_country: str | None = None,
+    ) -> CandidateProfile:
+        self._require_candidate(candidate_id)
+
+        profile = self.session.scalar(
+            select(CandidateProfile).where(
+                CandidateProfile.candidate_id == candidate_id
+            )
+        )
+
+        if profile is None:
+            raise CandidateProfileIntegrityError(
+                f"Candidate {candidate_id} has no canonical profile row."
+            )
+
+        profile.professional_headline = professional_headline
+        profile.professional_summary = professional_summary
+        profile.current_location = current_location
+        profile.current_country = current_country
+
+        self.session.flush()
+
+        return profile
+
+    def add_contact(
+        self,
+        candidate_id: int,
+        *,
+        contact_type: str,
+        contact_value: str,
+        label: str | None = None,
+        is_primary: bool = False,
+    ) -> CandidateContact:
+        self._require_candidate(candidate_id)
+
+        contact = CandidateContact(
+            candidate_id=candidate_id,
+            contact_type=contact_type,
+            contact_value=contact_value,
+            label=label,
+            is_primary=is_primary,
+        )
+
+        self.session.add(contact)
+        self.session.flush()
+
+        return contact
+
+    def add_link(
+        self,
+        candidate_id: int,
+        *,
+        link_type: str,
+        url: str,
+        label: str | None = None,
+        is_primary: bool = False,
+    ) -> CandidateLink:
+        self._require_candidate(candidate_id)
+
+        link = CandidateLink(
+            candidate_id=candidate_id,
+            link_type=link_type,
+            url=url,
+            label=label,
+            is_primary=is_primary,
+        )
+
+        self.session.add(link)
+        self.session.flush()
+
+        return link
+
+    def _require_candidate(self, candidate_id: int) -> Candidate:
+        candidate = self.session.scalar(
+            select(Candidate).where(Candidate.id == candidate_id)
+        )
+
+        if candidate is None:
+            raise CandidateNotFoundError(
+                f"Candidate {candidate_id} does not exist."
+            )
+
+        return candidate
+
     @staticmethod
     def _skill_record(skill: Skill) -> SkillRecord:
         return SkillRecord(
