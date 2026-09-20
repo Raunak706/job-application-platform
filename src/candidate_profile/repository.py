@@ -1,6 +1,7 @@
+from datetime import date
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from datetime import date
 
 from src.candidate_profile.contracts import (
     CandidateAchievementRecord,
@@ -31,7 +32,6 @@ from src.candidate_profile.contracts import (
     CanonicalCandidateProfile,
     SkillRecord,
 )
-
 from src.database.models import (
     Candidate,
     CandidateAchievement,
@@ -59,32 +59,27 @@ from src.database.models import (
     CandidateStory,
     CandidateTag,
     Skill,
+    SkillAlias,
 )
 
 
 class CandidateNotFoundError(LookupError):
-    """Raised when a requested candidate does not exist."""
+    pass
 
 
 class CandidateProfileIntegrityError(RuntimeError):
-    """Raised when canonical candidate data is structurally incomplete."""
+    pass
 
 
 class CandidateProfileRepository:
-
     def __init__(self, session: Session) -> None:
         self.session = session
 
-    def get_profile(self, candidate_id: int) -> CanonicalCandidateProfile:
-
-        candidate = self.session.scalar(
-            select(Candidate).where(Candidate.id == candidate_id)
-        )
-
-        if candidate is None:
-            raise CandidateNotFoundError(
-                f"Candidate {candidate_id} does not exist."
-            )
+    def get_profile(
+        self,
+        candidate_id: int,
+    ) -> CanonicalCandidateProfile:
+        candidate = self._require_candidate(candidate_id)
 
         profile = self.session.scalar(
             select(CandidateProfile).where(
@@ -165,7 +160,9 @@ class CandidateProfileRepository:
 
         application_facts = self.session.scalars(
             select(CandidateApplicationFact)
-            .where(CandidateApplicationFact.candidate_id == candidate_id)
+            .where(
+                CandidateApplicationFact.candidate_id == candidate_id
+            )
             .order_by(CandidateApplicationFact.id)
         ).all()
 
@@ -195,7 +192,9 @@ class CandidateProfileRepository:
 
         entity_relations = self.session.scalars(
             select(CandidateEntityRelation)
-            .where(CandidateEntityRelation.candidate_id == candidate_id)
+            .where(
+                CandidateEntityRelation.candidate_id == candidate_id
+            )
             .order_by(CandidateEntityRelation.id)
         ).all()
 
@@ -209,7 +208,9 @@ class CandidateProfileRepository:
         if project_ids:
             project_links = self.session.scalars(
                 select(CandidateProjectLink)
-                .where(CandidateProjectLink.project_id.in_(project_ids))
+                .where(
+                    CandidateProjectLink.project_id.in_(project_ids)
+                )
                 .order_by(CandidateProjectLink.id)
             ).all()
 
@@ -218,7 +219,9 @@ class CandidateProfileRepository:
         if education_ids:
             courses = self.session.scalars(
                 select(CandidateCourse)
-                .where(CandidateCourse.education_id.in_(education_ids))
+                .where(
+                    CandidateCourse.education_id.in_(education_ids)
+                )
                 .order_by(CandidateCourse.id)
             ).all()
 
@@ -227,14 +230,21 @@ class CandidateProfileRepository:
         if tag_ids:
             entity_tags = self.session.scalars(
                 select(CandidateEntityTag)
-                .where(CandidateEntityTag.tag_id.in_(tag_ids))
+                .where(
+                    CandidateEntityTag.tag_id.in_(tag_ids)
+                )
                 .order_by(CandidateEntityTag.id)
             ).all()
 
         candidate_skill_rows = self.session.execute(
             select(CandidateSkill, Skill)
-            .join(Skill, CandidateSkill.skill_id == Skill.id)
-            .where(CandidateSkill.candidate_id == candidate_id)
+            .join(
+                Skill,
+                CandidateSkill.skill_id == Skill.id,
+            )
+            .where(
+                CandidateSkill.candidate_id == candidate_id
+            )
             .order_by(CandidateSkill.id)
         ).all()
 
@@ -242,7 +252,10 @@ class CandidateProfileRepository:
 
         if experience_ids:
             experience_skill_rows = self.session.execute(
-                select(CandidateExperienceSkill, Skill)
+                select(
+                    CandidateExperienceSkill,
+                    Skill,
+                )
                 .join(
                     Skill,
                     CandidateExperienceSkill.skill_id == Skill.id,
@@ -259,13 +272,18 @@ class CandidateProfileRepository:
 
         if project_ids:
             project_skill_rows = self.session.execute(
-                select(CandidateProjectSkill, Skill)
+                select(
+                    CandidateProjectSkill,
+                    Skill,
+                )
                 .join(
                     Skill,
                     CandidateProjectSkill.skill_id == Skill.id,
                 )
                 .where(
-                    CandidateProjectSkill.project_id.in_(project_ids)
+                    CandidateProjectSkill.project_id.in_(
+                        project_ids
+                    )
                 )
                 .order_by(CandidateProjectSkill.id)
             ).all()
@@ -354,8 +372,12 @@ class CandidateProfileRepository:
                 CandidateSkillRecord(
                     id=candidate_skill.id,
                     skill=self._skill_record(skill),
-                    proficiency_level=candidate_skill.proficiency_level,
-                    experience_months=candidate_skill.experience_months,
+                    proficiency_level=(
+                        candidate_skill.proficiency_level
+                    ),
+                    experience_months=(
+                        candidate_skill.experience_months
+                    ),
                     last_used_date=candidate_skill.last_used_date,
                     notes=candidate_skill.notes,
                     verification_status=(
@@ -370,7 +392,9 @@ class CandidateProfileRepository:
                     id=experience_skill.id,
                     experience_id=experience_skill.experience_id,
                     skill=self._skill_record(skill),
-                    usage_description=experience_skill.usage_description,
+                    usage_description=(
+                        experience_skill.usage_description
+                    ),
                 )
                 for experience_skill, skill in experience_skill_rows
             ),
@@ -621,6 +645,17 @@ class CandidateProfileRepository:
     ) -> CandidateContact:
         self._require_candidate(candidate_id)
 
+        existing = self.session.scalar(
+            select(CandidateContact).where(
+                CandidateContact.candidate_id == candidate_id,
+                CandidateContact.contact_type == contact_type,
+                CandidateContact.contact_value == contact_value,
+            )
+        )
+
+        if existing is not None:
+            return existing
+
         contact = CandidateContact(
             candidate_id=candidate_id,
             contact_type=contact_type,
@@ -644,6 +679,17 @@ class CandidateProfileRepository:
         is_primary: bool = False,
     ) -> CandidateLink:
         self._require_candidate(candidate_id)
+
+        existing = self.session.scalar(
+            select(CandidateLink).where(
+                CandidateLink.candidate_id == candidate_id,
+                CandidateLink.link_type == link_type,
+                CandidateLink.url == url,
+            )
+        )
+
+        if existing is not None:
+            return existing
 
         link = CandidateLink(
             candidate_id=candidate_id,
@@ -740,6 +786,40 @@ class CandidateProfileRepository:
 
         return project
 
+    def add_project_link(
+        self,
+        candidate_id: int,
+        *,
+        project_id: int,
+        link_type: str,
+        url: str,
+        label: str | None = None,
+    ) -> CandidateProjectLink:
+        self._require_project(candidate_id, project_id)
+
+        existing = self.session.scalar(
+            select(CandidateProjectLink).where(
+                CandidateProjectLink.project_id == project_id,
+                CandidateProjectLink.link_type == link_type,
+                CandidateProjectLink.url == url,
+            )
+        )
+
+        if existing is not None:
+            return existing
+
+        project_link = CandidateProjectLink(
+            project_id=project_id,
+            link_type=link_type,
+            url=url,
+            label=label,
+        )
+
+        self.session.add(project_link)
+        self.session.flush()
+
+        return project_link
+
     def add_education(
         self,
         candidate_id: int,
@@ -782,6 +862,31 @@ class CandidateProfileRepository:
 
         return education
 
+    def add_course(
+        self,
+        candidate_id: int,
+        *,
+        education_id: int,
+        course_name: str,
+        course_code: str | None = None,
+        grade: str | None = None,
+        description: str | None = None,
+    ) -> CandidateCourse:
+        self._require_education(candidate_id, education_id)
+
+        course = CandidateCourse(
+            education_id=education_id,
+            course_name=course_name,
+            course_code=course_code,
+            grade=grade,
+            description=description,
+        )
+
+        self.session.add(course)
+        self.session.flush()
+
+        return course
+
     def add_certification(
         self,
         candidate_id: int,
@@ -816,6 +921,92 @@ class CandidateProfileRepository:
 
         return certification
 
+    def add_award(
+        self,
+        candidate_id: int,
+        *,
+        name: str,
+        issuer: str | None = None,
+        awarded_date: date | None = None,
+        description: str | None = None,
+        visibility: str = "internal",
+    ) -> CandidateAward:
+        self._require_candidate(candidate_id)
+
+        award = CandidateAward(
+            candidate_id=candidate_id,
+            name=name,
+            issuer=issuer,
+            awarded_date=awarded_date,
+            description=description,
+            visibility=visibility,
+        )
+
+        self.session.add(award)
+        self.session.flush()
+
+        return award
+
+    def add_publication(
+        self,
+        candidate_id: int,
+        *,
+        title: str,
+        publication_type: str | None = None,
+        publisher: str | None = None,
+        publication_date: date | None = None,
+        url: str | None = None,
+        description: str | None = None,
+        visibility: str = "internal",
+    ) -> CandidatePublication:
+        self._require_candidate(candidate_id)
+
+        publication = CandidatePublication(
+            candidate_id=candidate_id,
+            title=title,
+            publication_type=publication_type,
+            publisher=publisher,
+            publication_date=publication_date,
+            url=url,
+            description=description,
+            visibility=visibility,
+        )
+
+        self.session.add(publication)
+        self.session.flush()
+
+        return publication
+
+    def add_activity(
+        self,
+        candidate_id: int,
+        *,
+        organization: str | None = None,
+        role: str | None = None,
+        activity_type: str | None = None,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        description: str | None = None,
+        visibility: str = "internal",
+    ) -> CandidateActivity:
+        self._require_candidate(candidate_id)
+
+        activity = CandidateActivity(
+            candidate_id=candidate_id,
+            organization=organization,
+            role=role,
+            activity_type=activity_type,
+            start_date=start_date,
+            end_date=end_date,
+            description=description,
+            visibility=visibility,
+        )
+
+        self.session.add(activity)
+        self.session.flush()
+
+        return activity
+
     def add_achievement(
         self,
         candidate_id: int,
@@ -831,32 +1022,16 @@ class CandidateProfileRepository:
         self._require_candidate(candidate_id)
 
         if experience_id is not None:
-            experience = self.session.scalar(
-                select(CandidateExperience).where(
-                    CandidateExperience.id == experience_id,
-                    CandidateExperience.candidate_id == candidate_id,
-                )
+            self._require_experience(
+                candidate_id,
+                experience_id,
             )
-
-            if experience is None:
-                raise CandidateProfileIntegrityError(
-                    f"Experience {experience_id} does not belong to "
-                    f"candidate {candidate_id}."
-                )
 
         if project_id is not None:
-            project = self.session.scalar(
-                select(CandidateProject).where(
-                    CandidateProject.id == project_id,
-                    CandidateProject.candidate_id == candidate_id,
-                )
+            self._require_project(
+                candidate_id,
+                project_id,
             )
-
-            if project is None:
-                raise CandidateProfileIntegrityError(
-                    f"Project {project_id} does not belong to "
-                    f"candidate {candidate_id}."
-                )
 
         achievement = CandidateAchievement(
             candidate_id=candidate_id,
@@ -886,6 +1061,23 @@ class CandidateProfileRepository:
     ) -> CandidatePreference:
         self._require_candidate(candidate_id)
 
+        existing = self.session.scalar(
+            select(CandidatePreference).where(
+                CandidatePreference.candidate_id == candidate_id,
+                CandidatePreference.category == category,
+                CandidatePreference.preference_key == preference_key,
+            )
+        )
+
+        if existing is not None:
+            existing.value_json = value_json
+            existing.priority = priority
+            existing.is_active = is_active
+
+            self.session.flush()
+
+            return existing
+
         preference = CandidatePreference(
             candidate_id=candidate_id,
             category=category,
@@ -899,6 +1091,55 @@ class CandidateProfileRepository:
         self.session.flush()
 
         return preference
+
+    def add_application_fact(
+        self,
+        candidate_id: int,
+        *,
+        fact_key: str,
+        answer_text: str,
+        category: str | None = None,
+        question_text: str | None = None,
+        is_sensitive: bool = False,
+        verification_status: str = "unverified",
+        visibility: str = "application_only",
+    ) -> CandidateApplicationFact:
+        self._require_candidate(candidate_id)
+
+        existing = self.session.scalar(
+            select(CandidateApplicationFact).where(
+                CandidateApplicationFact.candidate_id == candidate_id,
+                CandidateApplicationFact.fact_key == fact_key,
+            )
+        )
+
+        if existing is not None:
+            existing.category = category
+            existing.question_text = question_text
+            existing.answer_text = answer_text
+            existing.is_sensitive = is_sensitive
+            existing.verification_status = verification_status
+            existing.visibility = visibility
+
+            self.session.flush()
+
+            return existing
+
+        application_fact = CandidateApplicationFact(
+            candidate_id=candidate_id,
+            fact_key=fact_key,
+            category=category,
+            question_text=question_text,
+            answer_text=answer_text,
+            is_sensitive=is_sensitive,
+            verification_status=verification_status,
+            visibility=visibility,
+        )
+
+        self.session.add(application_fact)
+        self.session.flush()
+
+        return application_fact
 
     def add_story(
         self,
@@ -972,9 +1213,400 @@ class CandidateProfileRepository:
 
         return fact
 
-    def _require_candidate(self, candidate_id: int) -> Candidate:
+    def add_skill(
+        self,
+        candidate_id: int,
+        *,
+        skill_name: str,
+        category: str | None = None,
+        proficiency_level: str | None = None,
+        experience_months: int | None = None,
+        last_used_date: date | None = None,
+        notes: str | None = None,
+        verification_status: str = "unverified",
+        visibility: str = "internal",
+    ) -> CandidateSkill:
+        self._require_candidate(candidate_id)
+
+        canonical_name = skill_name.strip()
+
+        if not canonical_name:
+            raise ValueError("skill_name cannot be empty.")
+
+        normalized_name = self._normalize_skill_name(canonical_name)
+
+        skill = self.session.scalar(
+            select(Skill).where(
+                Skill.normalized_name == normalized_name
+            )
+        )
+
+        if skill is None:
+            alias = self.session.scalar(
+                select(SkillAlias).where(
+                    SkillAlias.normalized_alias == normalized_name
+                )
+            )
+
+            if alias is not None:
+                skill = self.session.get(
+                    Skill,
+                    alias.skill_id,
+                )
+
+        if skill is None:
+            skill = Skill(
+                canonical_name=canonical_name,
+                normalized_name=normalized_name,
+                category=category,
+            )
+
+            self.session.add(skill)
+            self.session.flush()
+
+        candidate_skill = self.session.scalar(
+            select(CandidateSkill).where(
+                CandidateSkill.candidate_id == candidate_id,
+                CandidateSkill.skill_id == skill.id,
+            )
+        )
+
+        if candidate_skill is not None:
+            if proficiency_level is not None:
+                candidate_skill.proficiency_level = proficiency_level
+
+            if experience_months is not None:
+                candidate_skill.experience_months = experience_months
+
+            if last_used_date is not None:
+                candidate_skill.last_used_date = last_used_date
+
+            if notes is not None:
+                candidate_skill.notes = notes
+
+            candidate_skill.verification_status = verification_status
+            candidate_skill.visibility = visibility
+
+            self.session.flush()
+
+            return candidate_skill
+
+        candidate_skill = CandidateSkill(
+            candidate_id=candidate_id,
+            skill_id=skill.id,
+            proficiency_level=proficiency_level,
+            experience_months=experience_months,
+            last_used_date=last_used_date,
+            notes=notes,
+            verification_status=verification_status,
+            visibility=visibility,
+        )
+
+        self.session.add(candidate_skill)
+        self.session.flush()
+
+        return candidate_skill
+
+    def add_skill_alias(
+        self,
+        *,
+        skill_id: int,
+        alias: str,
+    ) -> SkillAlias:
+        skill = self.session.get(
+            Skill,
+            skill_id,
+        )
+
+        if skill is None:
+            raise CandidateProfileIntegrityError(
+                f"Skill {skill_id} does not exist."
+            )
+
+        alias_value = alias.strip()
+
+        if not alias_value:
+            raise ValueError("alias cannot be empty.")
+
+        normalized_alias = self._normalize_skill_name(
+            alias_value
+        )
+
+        existing = self.session.scalar(
+            select(SkillAlias).where(
+                SkillAlias.normalized_alias == normalized_alias
+            )
+        )
+
+        if existing is not None:
+            if existing.skill_id != skill_id:
+                raise CandidateProfileIntegrityError(
+                    f"Skill alias '{alias_value}' is already assigned "
+                    f"to skill {existing.skill_id}."
+                )
+
+            return existing
+
+        existing_skill = self.session.scalar(
+            select(Skill).where(
+                Skill.normalized_name == normalized_alias
+            )
+        )
+
+        if (
+            existing_skill is not None
+            and existing_skill.id != skill_id
+        ):
+            raise CandidateProfileIntegrityError(
+                f"Skill alias '{alias_value}' conflicts with canonical "
+                f"skill {existing_skill.id}."
+            )
+
+        skill_alias = SkillAlias(
+            skill_id=skill_id,
+            alias=alias_value,
+            normalized_alias=normalized_alias,
+        )
+
+        self.session.add(skill_alias)
+        self.session.flush()
+
+        return skill_alias
+
+    def add_experience_skill(
+        self,
+        candidate_id: int,
+        *,
+        experience_id: int,
+        skill_id: int,
+        usage_description: str | None = None,
+    ) -> CandidateExperienceSkill:
+        self._require_experience(
+            candidate_id,
+            experience_id,
+        )
+
+        self._require_candidate_skill(
+            candidate_id,
+            skill_id,
+        )
+
+        existing = self.session.scalar(
+            select(CandidateExperienceSkill).where(
+                CandidateExperienceSkill.experience_id == experience_id,
+                CandidateExperienceSkill.skill_id == skill_id,
+            )
+        )
+
+        if existing is not None:
+            if usage_description is not None:
+                existing.usage_description = usage_description
+                self.session.flush()
+
+            return existing
+
+        experience_skill = CandidateExperienceSkill(
+            experience_id=experience_id,
+            skill_id=skill_id,
+            usage_description=usage_description,
+        )
+
+        self.session.add(experience_skill)
+        self.session.flush()
+
+        return experience_skill
+
+    def add_project_skill(
+        self,
+        candidate_id: int,
+        *,
+        project_id: int,
+        skill_id: int,
+        usage_description: str | None = None,
+    ) -> CandidateProjectSkill:
+        self._require_project(
+            candidate_id,
+            project_id,
+        )
+
+        self._require_candidate_skill(
+            candidate_id,
+            skill_id,
+        )
+
+        existing = self.session.scalar(
+            select(CandidateProjectSkill).where(
+                CandidateProjectSkill.project_id == project_id,
+                CandidateProjectSkill.skill_id == skill_id,
+            )
+        )
+
+        if existing is not None:
+            if usage_description is not None:
+                existing.usage_description = usage_description
+                self.session.flush()
+
+            return existing
+
+        project_skill = CandidateProjectSkill(
+            project_id=project_id,
+            skill_id=skill_id,
+            usage_description=usage_description,
+        )
+
+        self.session.add(project_skill)
+        self.session.flush()
+
+        return project_skill
+
+    def add_tag(
+        self,
+        candidate_id: int,
+        *,
+        name: str,
+    ) -> CandidateTag:
+        self._require_candidate(candidate_id)
+
+        existing = self.session.scalar(
+            select(CandidateTag).where(
+                CandidateTag.candidate_id == candidate_id,
+                CandidateTag.name == name,
+            )
+        )
+
+        if existing is not None:
+            return existing
+
+        tag = CandidateTag(
+            candidate_id=candidate_id,
+            name=name,
+        )
+
+        self.session.add(tag)
+        self.session.flush()
+
+        return tag
+
+    def add_entity_tag(
+        self,
+        candidate_id: int,
+        *,
+        tag_id: int,
+        entity_type: str,
+        entity_id: int,
+    ) -> CandidateEntityTag:
+        tag = self.session.scalar(
+            select(CandidateTag).where(
+                CandidateTag.id == tag_id,
+                CandidateTag.candidate_id == candidate_id,
+            )
+        )
+
+        if tag is None:
+            raise CandidateProfileIntegrityError(
+                f"Tag {tag_id} does not belong to "
+                f"candidate {candidate_id}."
+            )
+
+        self._require_owned_entity(
+            candidate_id,
+            entity_type,
+            entity_id,
+        )
+
+        existing = self.session.scalar(
+            select(CandidateEntityTag).where(
+                CandidateEntityTag.tag_id == tag_id,
+                CandidateEntityTag.entity_type == entity_type,
+                CandidateEntityTag.entity_id == entity_id,
+            )
+        )
+
+        if existing is not None:
+            return existing
+
+        entity_tag = CandidateEntityTag(
+            tag_id=tag_id,
+            entity_type=entity_type,
+            entity_id=entity_id,
+        )
+
+        self.session.add(entity_tag)
+        self.session.flush()
+
+        return entity_tag
+
+    def add_entity_relation(
+        self,
+        candidate_id: int,
+        *,
+        from_entity_type: str,
+        from_entity_id: int,
+        relation_type: str,
+        to_entity_type: str,
+        to_entity_id: int,
+        metadata_json: dict | None = None,
+    ) -> CandidateEntityRelation:
+        self._require_candidate(candidate_id)
+
+        self._require_owned_entity(
+            candidate_id,
+            from_entity_type,
+            from_entity_id,
+        )
+
+        self._require_owned_entity(
+            candidate_id,
+            to_entity_type,
+            to_entity_id,
+        )
+
+        existing = self.session.scalar(
+            select(CandidateEntityRelation).where(
+                CandidateEntityRelation.candidate_id == candidate_id,
+                CandidateEntityRelation.from_entity_type
+                == from_entity_type,
+                CandidateEntityRelation.from_entity_id
+                == from_entity_id,
+                CandidateEntityRelation.relation_type
+                == relation_type,
+                CandidateEntityRelation.to_entity_type
+                == to_entity_type,
+                CandidateEntityRelation.to_entity_id
+                == to_entity_id,
+            )
+        )
+
+        if existing is not None:
+            if metadata_json is not None:
+                existing.metadata_json = metadata_json
+                self.session.flush()
+
+            return existing
+
+        relation = CandidateEntityRelation(
+            candidate_id=candidate_id,
+            from_entity_type=from_entity_type,
+            from_entity_id=from_entity_id,
+            relation_type=relation_type,
+            to_entity_type=to_entity_type,
+            to_entity_id=to_entity_id,
+            metadata_json=metadata_json,
+        )
+
+        self.session.add(relation)
+        self.session.flush()
+
+        return relation
+
+    def _require_candidate(
+        self,
+        candidate_id: int,
+    ) -> Candidate:
         candidate = self.session.scalar(
-            select(Candidate).where(Candidate.id == candidate_id)
+            select(Candidate).where(
+                Candidate.id == candidate_id
+            )
         )
 
         if candidate is None:
@@ -984,8 +1616,255 @@ class CandidateProfileRepository:
 
         return candidate
 
+    def _require_experience(
+        self,
+        candidate_id: int,
+        experience_id: int,
+    ) -> CandidateExperience:
+        experience = self.session.scalar(
+            select(CandidateExperience).where(
+                CandidateExperience.id == experience_id,
+                CandidateExperience.candidate_id == candidate_id,
+            )
+        )
+
+        if experience is None:
+            raise CandidateProfileIntegrityError(
+                f"Experience {experience_id} does not belong to "
+                f"candidate {candidate_id}."
+            )
+
+        return experience
+
+    def _require_project(
+        self,
+        candidate_id: int,
+        project_id: int,
+    ) -> CandidateProject:
+        project = self.session.scalar(
+            select(CandidateProject).where(
+                CandidateProject.id == project_id,
+                CandidateProject.candidate_id == candidate_id,
+            )
+        )
+
+        if project is None:
+            raise CandidateProfileIntegrityError(
+                f"Project {project_id} does not belong to "
+                f"candidate {candidate_id}."
+            )
+
+        return project
+
+    def _require_education(
+        self,
+        candidate_id: int,
+        education_id: int,
+    ) -> CandidateEducation:
+        education = self.session.scalar(
+            select(CandidateEducation).where(
+                CandidateEducation.id == education_id,
+                CandidateEducation.candidate_id == candidate_id,
+            )
+        )
+
+        if education is None:
+            raise CandidateProfileIntegrityError(
+                f"Education {education_id} does not belong to "
+                f"candidate {candidate_id}."
+            )
+
+        return education
+
+    def _require_candidate_skill(
+        self,
+        candidate_id: int,
+        skill_id: int,
+    ) -> CandidateSkill:
+        candidate_skill = self.session.scalar(
+            select(CandidateSkill).where(
+                CandidateSkill.candidate_id == candidate_id,
+                CandidateSkill.skill_id == skill_id,
+            )
+        )
+
+        if candidate_skill is None:
+            raise CandidateProfileIntegrityError(
+                f"Skill {skill_id} is not assigned to "
+                f"candidate {candidate_id}."
+            )
+
+        return candidate_skill
+
+    def _require_owned_entity(
+        self,
+        candidate_id: int,
+        entity_type: str,
+        entity_id: int,
+    ) -> None:
+        direct_models = {
+            "candidate": Candidate,
+            "profile": CandidateProfile,
+            "contact": CandidateContact,
+            "link": CandidateLink,
+            "experience": CandidateExperience,
+            "project": CandidateProject,
+            "education": CandidateEducation,
+            "certification": CandidateCertification,
+            "award": CandidateAward,
+            "publication": CandidatePublication,
+            "activity": CandidateActivity,
+            "achievement": CandidateAchievement,
+            "preference": CandidatePreference,
+            "application_fact": CandidateApplicationFact,
+            "story": CandidateStory,
+            "fact": CandidateFact,
+        }
+
+        model = direct_models.get(entity_type)
+
+        if entity_type == "candidate":
+            self._require_candidate(candidate_id)
+
+            if entity_id != candidate_id:
+                raise CandidateProfileIntegrityError(
+                    f"Candidate entity {entity_id} does not belong to "
+                    f"candidate {candidate_id}."
+                )
+
+            return
+
+        if model is not None:
+            row = self.session.scalar(
+                select(model).where(
+                    model.id == entity_id,
+                    model.candidate_id == candidate_id,
+                )
+            )
+
+            if row is None:
+                raise CandidateProfileIntegrityError(
+                    f"{entity_type} {entity_id} does not belong to "
+                    f"candidate {candidate_id}."
+                )
+
+            return
+
+        if entity_type == "skill":
+            self._require_candidate_skill(
+                candidate_id,
+                entity_id,
+            )
+            return
+
+        if entity_type == "course":
+            course = self.session.scalar(
+                select(CandidateCourse)
+                .join(
+                    CandidateEducation,
+                    CandidateCourse.education_id
+                    == CandidateEducation.id,
+                )
+                .where(
+                    CandidateCourse.id == entity_id,
+                    CandidateEducation.candidate_id
+                    == candidate_id,
+                )
+            )
+
+            if course is None:
+                raise CandidateProfileIntegrityError(
+                    f"course {entity_id} does not belong to "
+                    f"candidate {candidate_id}."
+                )
+
+            return
+
+        if entity_type == "project_link":
+            project_link = self.session.scalar(
+                select(CandidateProjectLink)
+                .join(
+                    CandidateProject,
+                    CandidateProjectLink.project_id
+                    == CandidateProject.id,
+                )
+                .where(
+                    CandidateProjectLink.id == entity_id,
+                    CandidateProject.candidate_id
+                    == candidate_id,
+                )
+            )
+
+            if project_link is None:
+                raise CandidateProfileIntegrityError(
+                    f"project_link {entity_id} does not belong to "
+                    f"candidate {candidate_id}."
+                )
+
+            return
+
+        if entity_type == "experience_skill":
+            experience_skill = self.session.scalar(
+                select(CandidateExperienceSkill)
+                .join(
+                    CandidateExperience,
+                    CandidateExperienceSkill.experience_id
+                    == CandidateExperience.id,
+                )
+                .where(
+                    CandidateExperienceSkill.id == entity_id,
+                    CandidateExperience.candidate_id
+                    == candidate_id,
+                )
+            )
+
+            if experience_skill is None:
+                raise CandidateProfileIntegrityError(
+                    f"experience_skill {entity_id} does not belong to "
+                    f"candidate {candidate_id}."
+                )
+
+            return
+
+        if entity_type == "project_skill":
+            project_skill = self.session.scalar(
+                select(CandidateProjectSkill)
+                .join(
+                    CandidateProject,
+                    CandidateProjectSkill.project_id
+                    == CandidateProject.id,
+                )
+                .where(
+                    CandidateProjectSkill.id == entity_id,
+                    CandidateProject.candidate_id
+                    == candidate_id,
+                )
+            )
+
+            if project_skill is None:
+                raise CandidateProfileIntegrityError(
+                    f"project_skill {entity_id} does not belong to "
+                    f"candidate {candidate_id}."
+                )
+
+            return
+
+        raise CandidateProfileIntegrityError(
+            f"Unsupported candidate entity type: {entity_type}."
+        )
+
     @staticmethod
-    def _skill_record(skill: Skill) -> SkillRecord:
+    def _normalize_skill_name(
+        skill_name: str,
+    ) -> str:
+        return " ".join(
+            skill_name.strip().casefold().split()
+        )
+
+    @staticmethod
+    def _skill_record(
+        skill: Skill,
+    ) -> SkillRecord:
         return SkillRecord(
             skill_id=skill.id,
             canonical_name=skill.canonical_name,
