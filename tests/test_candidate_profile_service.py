@@ -328,3 +328,90 @@ def test_write_operations_do_not_cross_candidates(session_factory):
     assert [link.url for link in profile_b.links] == [
         "https://linkedin.com/in/candidate-b"
     ]
+
+def test_add_experience(session_factory):
+    with session_factory() as session:
+        candidate = Candidate(
+            display_name="Experience Test",
+            status="active",
+        )
+        session.add(candidate)
+        session.flush()
+
+        session.add(
+            CandidateProfile(
+                candidate_id=candidate.id,
+            )
+        )
+        session.commit()
+
+        candidate_id = candidate.id
+
+    service = CandidateProfileService(
+        session_factory=session_factory,
+    )
+
+    result = service.add_experience(
+        candidate_id,
+        company="Example Company",
+        title="Data Engineer",
+        employment_type="full_time",
+        location="New Jersey",
+        country="US",
+        description="Built data pipelines.",
+        verification_status="verified",
+        visibility="resume_safe",
+    )
+
+    assert len(result.experiences) == 1
+    assert result.experiences[0].company == "Example Company"
+    assert result.experiences[0].title == "Data Engineer"
+    assert result.experiences[0].employment_type == "full_time"
+    assert result.experiences[0].location == "New Jersey"
+    assert result.experiences[0].country == "US"
+    assert result.experiences[0].verification_status == "verified"
+    assert result.experiences[0].visibility == "resume_safe"
+
+
+def test_add_project(session_factory):
+    with session_factory() as session:
+        candidate = Candidate(
+            display_name="Project Test",
+            status="active",
+        )
+        session.add(candidate)
+        session.flush()
+
+        session.add(
+            CandidateProfile(
+                candidate_id=candidate.id,
+            )
+        )
+        session.commit()
+
+        candidate_id = candidate.id
+
+    service = CandidateProfileService(
+        session_factory=session_factory,
+    )
+
+    result = service.add_project(
+        candidate_id,
+        name="Job Application Platform",
+        role="Developer",
+        description="End-to-end job application system.",
+        problem="Job application workflows were fragmented.",
+        solution="Built a modular application platform.",
+        architecture="PostgreSQL-backed modular Python services.",
+        outcome="Created a reusable job application workflow.",
+        status="active",
+        verification_status="verified",
+        visibility="resume_safe",
+    )
+
+    assert len(result.projects) == 1
+    assert result.projects[0].name == "Job Application Platform"
+    assert result.projects[0].role == "Developer"
+    assert result.projects[0].status == "active"
+    assert result.projects[0].verification_status == "verified"
+    assert result.projects[0].visibility == "resume_safe"

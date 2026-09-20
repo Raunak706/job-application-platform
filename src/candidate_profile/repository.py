@@ -1,5 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from datetime import date
 
 from src.candidate_profile.contracts import (
     CandidateAchievementRecord,
@@ -656,6 +657,88 @@ class CandidateProfileRepository:
         self.session.flush()
 
         return link
+
+    def add_experience(
+        self,
+        candidate_id: int,
+        *,
+        company: str,
+        title: str,
+        employment_type: str | None = None,
+        department: str | None = None,
+        location: str | None = None,
+        country: str | None = None,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        is_current: bool = False,
+        description: str | None = None,
+        verification_status: str = "unverified",
+        visibility: str = "internal",
+    ) -> CandidateExperience:
+        self._require_candidate(candidate_id)
+
+        experience = CandidateExperience(
+            candidate_id=candidate_id,
+            company=company,
+            title=title,
+            employment_type=employment_type,
+            department=department,
+            location=location,
+            country=country,
+            start_date=start_date,
+            end_date=end_date,
+            is_current=is_current,
+            description=description,
+            verification_status=verification_status,
+            visibility=visibility,
+        )
+
+        self.session.add(experience)
+        self.session.flush()
+
+        return experience
+
+    def add_project(
+        self,
+        candidate_id: int,
+        *,
+        name: str,
+        role: str | None = None,
+        organization: str | None = None,
+        description: str | None = None,
+        problem: str | None = None,
+        solution: str | None = None,
+        architecture: str | None = None,
+        outcome: str | None = None,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        status: str | None = None,
+        verification_status: str = "unverified",
+        visibility: str = "internal",
+    ) -> CandidateProject:
+        self._require_candidate(candidate_id)
+
+        project = CandidateProject(
+            candidate_id=candidate_id,
+            name=name,
+            role=role,
+            organization=organization,
+            description=description,
+            problem=problem,
+            solution=solution,
+            architecture=architecture,
+            outcome=outcome,
+            start_date=start_date,
+            end_date=end_date,
+            status=status,
+            verification_status=verification_status,
+            visibility=visibility,
+        )
+
+        self.session.add(project)
+        self.session.flush()
+
+        return project
 
     def _require_candidate(self, candidate_id: int) -> Candidate:
         candidate = self.session.scalar(

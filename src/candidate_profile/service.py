@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from datetime import date
 
 from sqlalchemy.orm import Session
 
@@ -88,6 +89,88 @@ class CandidateProfileService:
                 url=url,
                 label=label,
                 is_primary=is_primary,
+            )
+
+            session.commit()
+
+            return repository.get_profile(candidate_id)
+
+    def add_experience(
+        self,
+        candidate_id: int,
+        *,
+        company: str,
+        title: str,
+        employment_type: str | None = None,
+        department: str | None = None,
+        location: str | None = None,
+        country: str | None = None,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        is_current: bool = False,
+        description: str | None = None,
+        verification_status: str = "unverified",
+        visibility: str = "internal",
+    ) -> CanonicalCandidateProfile:
+        with self._session_factory() as session:
+            repository = CandidateProfileRepository(session)
+
+            repository.add_experience(
+                candidate_id,
+                company=company,
+                title=title,
+                employment_type=employment_type,
+                department=department,
+                location=location,
+                country=country,
+                start_date=start_date,
+                end_date=end_date,
+                is_current=is_current,
+                description=description,
+                verification_status=verification_status,
+                visibility=visibility,
+            )
+
+            session.commit()
+
+            return repository.get_profile(candidate_id)
+
+    def add_project(
+        self,
+        candidate_id: int,
+        *,
+        name: str,
+        role: str | None = None,
+        organization: str | None = None,
+        description: str | None = None,
+        problem: str | None = None,
+        solution: str | None = None,
+        architecture: str | None = None,
+        outcome: str | None = None,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        status: str | None = None,
+        verification_status: str = "unverified",
+        visibility: str = "internal",
+    ) -> CanonicalCandidateProfile:
+        with self._session_factory() as session:
+            repository = CandidateProfileRepository(session)
+
+            repository.add_project(
+                candidate_id,
+                name=name,
+                role=role,
+                organization=organization,
+                description=description,
+                problem=problem,
+                solution=solution,
+                architecture=architecture,
+                outcome=outcome,
+                start_date=start_date,
+                end_date=end_date,
+                status=status,
+                verification_status=verification_status,
+                visibility=visibility,
             )
 
             session.commit()
