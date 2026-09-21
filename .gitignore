@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 .env
 data/candidates/*.json
+!data/candidates/example_candidate.json

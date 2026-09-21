@@ -1,0 +1,283 @@
+{
+  "candidate": {
+    "display_name": "Example Candidate",
+    "status": "active"
+  },
+  "profile": {
+    "professional_headline": "Data Engineer",
+    "professional_summary": "Example professional summary.",
+    "current_location": "New Brunswick, NJ",
+    "current_country": "US"
+  },
+  "contacts": [
+    {
+      "ref": "primary_email",
+      "contact_type": "email",
+      "contact_value": "example@example.com",
+      "label": "Personal",
+      "is_primary": true
+    }
+  ],
+  "links": [
+    {
+      "ref": "github_profile",
+      "link_type": "github",
+      "url": "https://github.com/example",
+      "label": "GitHub",
+      "is_primary": true
+    }
+  ],
+  "experiences": [
+    {
+      "ref": "example_experience",
+      "company": "Example Company",
+      "title": "Data Engineer",
+      "employment_type": "full_time",
+      "department": "Engineering",
+      "location": "New York, NY",
+      "country": "US",
+      "start_date": "2025-01-01",
+      "end_date": null,
+      "is_current": true,
+      "description": "Example work experience.",
+      "verification_status": "verified",
+      "visibility": "internal"
+    }
+  ],
+  "projects": [
+    {
+      "ref": "example_project",
+      "name": "Example Project",
+      "role": "Developer",
+      "organization": null,
+      "description": "Example project description.",
+      "problem": "Example problem.",
+      "solution": "Example solution.",
+      "architecture": "Example architecture.",
+      "outcome": "Example outcome.",
+      "start_date": "2025-02-01",
+      "end_date": null,
+      "status": "active",
+      "verification_status": "verified",
+      "visibility": "internal"
+    }
+  ],
+  "project_links": [
+    {
+      "ref": "example_project_repo",
+      "project_ref": "example_project",
+      "link_type": "github",
+      "url": "https://github.com/example/example-project",
+      "label": "Repository"
+    }
+  ],
+  "education": [
+    {
+      "ref": "example_education",
+      "institution": "Example University",
+      "degree": "Bachelor of Science",
+      "field_of_study": "Computer Science",
+      "education_level": "bachelors",
+      "location": "Example City",
+      "country": "US",
+      "start_date": "2022-09-01",
+      "end_date": null,
+      "graduation_date": "2026-05-15",
+      "gpa": "3.80",
+      "description": null,
+      "verification_status": "verified",
+      "visibility": "internal"
+    }
+  ],
+  "courses": [
+    {
+      "ref": "example_course",
+      "education_ref": "example_education",
+      "course_code": "CS101",
+      "course_name": "Introduction to Computer Science",
+      "grade": "A",
+      "description": null
+    }
+  ],
+  "certifications": [
+    {
+      "ref": "example_certification",
+      "name": "Example Certification",
+      "issuer": "Example Issuer",
+      "credential_id": "EXAMPLE-001",
+      "issue_date": "2025-01-15",
+      "expiration_date": null,
+      "credential_url": "https://example.com/credential",
+      "description": null,
+      "verification_status": "verified",
+      "visibility": "internal"
+    }
+  ],
+  "awards": [
+    {
+      "ref": "example_award",
+      "name": "Example Award",
+      "issuer": "Example University",
+      "awarded_date": "2025-05-01",
+      "description": "Example award description.",
+      "visibility": "internal"
+    }
+  ],
+  "publications": [
+    {
+      "ref": "example_publication",
+      "title": "Example Publication",
+      "publication_type": "article",
+      "publisher": "Example Publisher",
+      "publication_date": "2025-03-01",
+      "url": "https://example.com/publication",
+      "description": "Example publication description.",
+      "visibility": "internal"
+    }
+  ],
+  "activities": [
+    {
+      "ref": "example_activity",
+      "organization": "Example Organization",
+      "role": "Member",
+      "activity_type": "student_organization",
+      "start_date": "2024-09-01",
+      "end_date": null,
+      "description": "Example activity description.",
+      "visibility": "internal"
+    }
+  ],
+  "achievements": [
+    {
+      "ref": "experience_achievement",
+      "experience_ref": "example_experience",
+      "title": "Automation",
+      "description": "Automated an example workflow.",
+      "metric_text": "Reduced manual effort.",
+      "verification_status": "verified",
+      "visibility": "internal"
+    },
+    {
+      "ref": "project_achievement",
+      "project_ref": "example_project",
+      "title": "Project Delivery",
+      "description": "Delivered the example project.",
+      "metric_text": null,
+      "verification_status": "verified",
+      "visibility": "internal"
+    }
+  ],
+  "skills": [
+    {
+      "ref": "python",
+      "skill_name": "Python",
+      "category": "programming_language",
+      "proficiency_level": "advanced",
+      "experience_months": 24,
+      "last_used_date": "2026-09-01",
+      "notes": null,
+      "verification_status": "verified",
+      "visibility": "internal"
+    }
+  ],
+  "experience_skills": [
+    {
+      "ref": "experience_python",
+      "experience_ref": "example_experience",
+      "skill_ref": "python",
+      "usage_description": "Used Python in production data workflows."
+    }
+  ],
+  "project_skills": [
+    {
+      "ref": "project_python",
+      "project_ref": "example_project",
+      "skill_ref": "python",
+      "usage_description": "Used Python to build the project."
+    }
+  ],
+  "preferences": [
+    {
+      "ref": "remote_preference",
+      "category": "workplace",
+      "preference_key": "remote",
+      "value_json": {
+        "preferred": true
+      },
+      "priority": 1,
+      "is_active": true
+    }
+  ],
+  "application_facts": [
+    {
+      "ref": "work_authorization",
+      "fact_key": "work_authorization",
+      "answer_text": "Example answer",
+      "category": "eligibility",
+      "question_text": "Are you authorized to work in the United States?",
+      "is_sensitive": false,
+      "verification_status": "verified",
+      "visibility": "application_only"
+    }
+  ],
+  "stories": [
+    {
+      "ref": "example_story",
+      "title": "Example STAR Story",
+      "story_type": "star",
+      "situation": "Example situation.",
+      "task": "Example task.",
+      "action": "Example action.",
+      "result": "Example result.",
+      "summary": "Example reusable interview story.",
+      "verification_status": "verified",
+      "visibility": "internal"
+    }
+  ],
+  "facts": [
+    {
+      "ref": "example_fact",
+      "category": "general",
+      "fact_key": "example_fact",
+      "value_text": "Example value",
+      "value_json": null,
+      "verification_status": "verified",
+      "confidence": 1.0,
+      "visibility": "internal",
+      "is_sensitive": false,
+      "valid_from": null,
+      "valid_to": null,
+      "status": "active"
+    }
+  ],
+  "tags": [
+    {
+      "ref": "data_engineering",
+      "name": "data-engineering"
+    }
+  ],
+  "entity_tags": [
+    {
+      "tag_ref": "data_engineering",
+      "entity_type": "experience",
+      "entity_ref": "example_experience"
+    },
+    {
+      "tag_ref": "data_engineering",
+      "entity_type": "project",
+      "entity_ref": "example_project"
+    }
+  ],
+  "entity_relations": [
+    {
+      "from_entity_type": "experience",
+      "from_entity_ref": "example_experience",
+      "relation_type": "related_to",
+      "to_entity_type": "project",
+      "to_entity_ref": "example_project",
+      "metadata_json": {
+        "note": "Example relationship metadata"
+      }
+    }
+  ]
+}
