@@ -31,3 +31,23 @@ class TailoringInput:
     projects: tuple[CandidateProjectRecord, ...]
     skills: tuple[CandidateSkillRecord, ...]
     achievements: tuple[CandidateAchievementRecord, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class GeneratedExperienceContent:
+    experience_id: int
+    bullets: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class GeneratedProjectContent:
+    project_id: int
+    bullets: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class StructuredResumeContent:
+    professional_summary: str | None
+    experiences: tuple[GeneratedExperienceContent, ...]
+    projects: tuple[GeneratedProjectContent, ...]
+    skills: tuple[str, ...]
