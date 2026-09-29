@@ -1,7 +1,8 @@
 import json
-from typing import Any
+import time
+from typing import Any, Callable
 
-from google.genai import types
+from google.genai import errors, types
 
 from src.resume_tailoring.contracts import (
     GeneratedExperienceContent,
@@ -86,27 +87,46 @@ class GeminiResumeContentGenerator:
         *,
         client: Any,
         model: str,
+        sleep_fn: Callable[[float], None] = time.sleep,
     ):
         self._client = client
         self._model = model
+        self._sleep_fn = sleep_fn
 
     def generate(
         self,
         tailoring_input: TailoringInput,
     ) -> StructuredResumeContent:
-        response = self._client.models.generate_content(
-            model=self._model,
-            contents=json.dumps(
-                serialize_tailoring_input(tailoring_input),
-            ),
-            config=types.GenerateContentConfig(
-                system_instruction=build_generation_instructions(),
-                response_mime_type="application/json",
-                response_json_schema=_RESPONSE_JSON_SCHEMA,
-            ),
+        response = self._generate_with_retry(
+            tailoring_input,
         )
 
         return _parse_response(response.parsed)
+
+    def _generate_with_retry(
+        self,
+        tailoring_input: TailoringInput,
+    ) -> Any:
+        for attempt in range(3):
+            try:
+                return self._client.models.generate_content(
+                    model=self._model,
+                    contents=json.dumps(
+                        serialize_tailoring_input(tailoring_input),
+                    ),
+                    config=types.GenerateContentConfig(
+                        system_instruction=build_generation_instructions(),
+                        response_mime_type="application/json",
+                        response_json_schema=_RESPONSE_JSON_SCHEMA,
+                    ),
+                )
+            except errors.ServerError as error:
+                if error.code != 503 or attempt == 2:
+                    raise
+
+                self._sleep_fn(2 ** attempt)
+
+        raise RuntimeError("Gemini retry loop exited unexpectedly.")
 
 
 def _parse_response(

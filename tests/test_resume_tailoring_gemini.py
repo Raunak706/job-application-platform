@@ -1,3 +1,5 @@
+from google.genai import errors
+
 from src.resume_tailoring.contracts import (
     StructuredResumeContent,
     TailoringInput,
@@ -86,6 +88,80 @@ def test_gemini_generator_uses_structured_json_output():
     assert call["model"] == "test-model"
     assert call["config"].response_mime_type == "application/json"
     assert call["config"].response_json_schema is not None
+
+
+def test_gemini_generator_retries_503_then_succeeds():
+    class RetryModels:
+        def __init__(self):
+            self.call_count = 0
+
+        def generate_content(self, **kwargs):
+            self.call_count += 1
+
+            if self.call_count == 1:
+                raise errors.ServerError(
+                    503,
+                    {"error": {"message": "Service unavailable"}},
+                )
+
+            return FakeResponse()
+
+    class RetryClient:
+        def __init__(self):
+            self.models = RetryModels()
+
+    sleep_calls = []
+
+    generator = GeminiResumeContentGenerator(
+        client=RetryClient(),
+        model="test-model",
+        sleep_fn=sleep_calls.append,
+    )
+
+    result = generator.generate(make_tailoring_input())
+
+    assert isinstance(result, StructuredResumeContent)
+    assert generator._client.models.call_count == 2
+    assert sleep_calls == [1]
+
+
+def test_gemini_generator_raises_after_repeated_503():
+    class UnavailableModels:
+        def __init__(self):
+            self.call_count = 0
+
+        def generate_content(self, **kwargs):
+            self.call_count += 1
+            raise errors.ServerError(
+                503,
+                {"error": {"message": "Service unavailable"}},
+            )
+
+    class UnavailableClient:
+        def __init__(self):
+            self.models = UnavailableModels()
+
+    client = UnavailableClient()
+    sleep_calls = []
+
+    generator = GeminiResumeContentGenerator(
+        client=client,
+        model="test-model",
+        sleep_fn=sleep_calls.append,
+    )
+
+    try:
+        generator.generate(make_tailoring_input())
+    except errors.ServerError as error:
+        assert error.code == 503
+    else:
+        raise AssertionError(
+            "Expected repeated Gemini 503 response to be raised."
+        )
+
+    assert client.models.call_count == 3
+    assert sleep_calls == [1, 2]
+
 
 def test_gemini_generator_rejects_malformed_response():
     class MalformedResponse:
