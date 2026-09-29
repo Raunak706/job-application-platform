@@ -3,3 +3,4 @@ psycopg[binary]==3.3.5
 requests==2.34.2
 SQLAlchemy==2.0.54
 urllib3==2.8.0
+google-genai==2.25.0
