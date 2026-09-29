@@ -118,6 +118,11 @@ class GeminiResumeContentGenerator:
                         system_instruction=build_generation_instructions(),
                         response_mime_type="application/json",
                         response_json_schema=_RESPONSE_JSON_SCHEMA,
+                        automatic_function_calling=(
+                            types.AutomaticFunctionCallingConfig(
+                                disable=True,
+                            )
+                        ),
                     ),
                 )
             except errors.ServerError as error:
