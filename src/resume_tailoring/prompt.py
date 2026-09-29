@@ -1,3 +1,6 @@
+PROMPT_VERSION = "v1"
+
+
 def build_generation_instructions() -> str:
     return """
 You generate structured resume content from the supplied input.
