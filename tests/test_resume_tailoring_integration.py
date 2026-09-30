@@ -7,7 +7,46 @@ from src.candidate_profile.service import CandidateProfileService
 from src.database.models import Job
 from src.database.session import engine
 from src.matching.service import MatchingService
+from src.resume_tailoring.contracts import (
+    GeneratedExperienceContent,
+    GeneratedProjectContent,
+    StructuredResumeContent,
+)
+from src.resume_tailoring.renderer import render_resume
 from src.resume_tailoring.selector import build_tailoring_input
+from src.resume_tailoring.validation import validate_generated_content
+
+
+class FakeResumeContentGenerator:
+    def generate(self, tailoring_input):
+        experience = tailoring_input.experiences[0]
+        project = tailoring_input.projects[0]
+
+        return StructuredResumeContent(
+            professional_summary=(
+                "Data engineer focused on reliable data systems."
+            ),
+            experiences=(
+                GeneratedExperienceContent(
+                    experience_id=experience.id,
+                    bullets=(
+                        "Built Python and SQL data pipelines.",
+                    ),
+                ),
+            ),
+            projects=(
+                GeneratedProjectContent(
+                    project_id=project.id,
+                    bullets=(
+                        "Built a Python data processing platform.",
+                    ),
+                ),
+            ),
+            skills=tuple(
+                skill.skill.canonical_name
+                for skill in tailoring_input.skills
+            ),
+        )
 
 
 @pytest.fixture
@@ -196,3 +235,52 @@ def test_resume_tailoring_real_service_path(session_factory):
     assert tailoring_input.achievements[0].metric_text == (
         "Reduced failures by 50%."
     )
+
+    generator = FakeResumeContentGenerator()
+
+    generated_content = generator.generate(
+        tailoring_input,
+    )
+
+    validate_generated_content(
+        tailoring_input,
+        generated_content,
+    )
+
+    rendered_resume = render_resume(
+        profile,
+        generated_content,
+    )
+
+    assert r"\documentclass[10pt]{article}" in rendered_resume
+    assert r"\textbf{Resume Tailoring Candidate}" in rendered_resume
+
+    assert r"\section{Professional Summary}" in rendered_resume
+    assert (
+        "Data engineer focused on reliable data systems."
+        in rendered_resume
+    )
+
+    assert r"\section{Experience}" in rendered_resume
+    assert "Example Company" in rendered_resume
+    assert "Data Engineer" in rendered_resume
+    assert "Built Python and SQL data pipelines." in rendered_resume
+
+    assert r"\section{Projects}" in rendered_resume
+    assert "Data Platform" in rendered_resume
+    assert (
+        "Built a Python data processing platform."
+        in rendered_resume
+    )
+
+    assert r"\section{Skills}" in rendered_resume
+    assert "Python" in rendered_resume
+    assert "SQL" in rendered_resume
+    assert "Apache Spark" not in rendered_resume
+
+    assert "{{HEADER}}" not in rendered_resume
+    assert "{{EDUCATION}}" not in rendered_resume
+    assert "{{PROFESSIONAL_SUMMARY}}" not in rendered_resume
+    assert "{{EXPERIENCE}}" not in rendered_resume
+    assert "{{PROJECTS}}" not in rendered_resume
+    assert "{{SKILLS}}" not in rendered_resume
