@@ -9,7 +9,13 @@ from src.candidate_profile.contracts import (
     CandidateSkillRecord,
     SkillRecord,
 )
+from src.resume_tailoring.composition import (
+    ExperienceContentAllocation,
+    ProjectContentAllocation,
+    ResumeCompositionPlan,
+)
 from src.resume_tailoring.contracts import (
+    ResumeGenerationInput,
     TailoringInput,
     TailoringJobContext,
 )
@@ -147,3 +153,51 @@ def test_tailoring_input_is_immutable():
 
     with pytest.raises(FrozenInstanceError):
         tailoring_input.candidate_id = 2
+
+
+def test_resume_generation_input_combines_tailoring_input_and_composition_plan():
+    tailoring_input = TailoringInput(
+        candidate_id=1,
+        job=TailoringJobContext(
+            job_id=10,
+            title="Data Engineer",
+            company="Example Employer",
+            description="Build reliable data systems.",
+            location=None,
+            country=None,
+            workplace_type=None,
+            employment_type=None,
+            department=None,
+        ),
+        professional_headline="Data Engineer",
+        professional_summary=None,
+        experiences=(),
+        projects=(),
+        skills=(),
+    )
+
+    composition_plan = ResumeCompositionPlan(
+        experiences=(
+            ExperienceContentAllocation(
+                experience_id=101,
+                target_bullets=4,
+            ),
+        ),
+        projects=(
+            ProjectContentAllocation(
+                project_id=201,
+                target_bullets=2,
+            ),
+        ),
+    )
+
+    generation_input = ResumeGenerationInput(
+        tailoring_input=tailoring_input,
+        composition_plan=composition_plan,
+    )
+
+    assert generation_input.tailoring_input is tailoring_input
+    assert generation_input.composition_plan is composition_plan
+
+    with pytest.raises(FrozenInstanceError):
+        generation_input.tailoring_input = tailoring_input

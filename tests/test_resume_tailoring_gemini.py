@@ -1,6 +1,8 @@
 from google.genai import errors
 
+from src.resume_tailoring.composition import ResumeCompositionPlan
 from src.resume_tailoring.contracts import (
+    ResumeGenerationInput,
     StructuredResumeContent,
     TailoringInput,
     TailoringJobContext,
@@ -56,6 +58,16 @@ def make_tailoring_input():
     )
 
 
+def make_generation_input():
+    return ResumeGenerationInput(
+        tailoring_input=make_tailoring_input(),
+        composition_plan=ResumeCompositionPlan(
+            experiences=(),
+            projects=(),
+        ),
+    )
+
+
 def test_gemini_generator_returns_structured_resume_content():
     client = FakeClient()
     generator = GeminiResumeContentGenerator(
@@ -63,7 +75,7 @@ def test_gemini_generator_returns_structured_resume_content():
         model="test-model",
     )
 
-    result = generator.generate(make_tailoring_input())
+    result = generator.generate(make_generation_input())
 
     assert isinstance(result, StructuredResumeContent)
     assert result.professional_summary == (
@@ -81,7 +93,7 @@ def test_gemini_generator_uses_structured_json_output():
         model="test-model",
     )
 
-    generator.generate(make_tailoring_input())
+    generator.generate(make_generation_input())
 
     call = client.models.calls[0]
 
@@ -118,7 +130,7 @@ def test_gemini_generator_retries_503_then_succeeds():
         sleep_fn=sleep_calls.append,
     )
 
-    result = generator.generate(make_tailoring_input())
+    result = generator.generate(make_generation_input())
 
     assert isinstance(result, StructuredResumeContent)
     assert generator._client.models.call_count == 2
@@ -151,7 +163,7 @@ def test_gemini_generator_raises_after_repeated_503():
     )
 
     try:
-        generator.generate(make_tailoring_input())
+        generator.generate(make_generation_input())
     except errors.ServerError as error:
         assert error.code == 503
     else:
@@ -184,7 +196,7 @@ def test_gemini_generator_rejects_malformed_response():
     )
 
     try:
-        generator.generate(make_tailoring_input())
+        generator.generate(make_generation_input())
     except ValueError as error:
         assert str(error) == (
             "Gemini returned malformed structured resume content."

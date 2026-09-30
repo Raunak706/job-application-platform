@@ -9,15 +9,20 @@ from src.candidate_profile.contracts import (
     CandidateCourseRecord,
     CandidateEducationRecord,
     CandidateExperienceRecord,
+    CandidateExperienceSkillRecord,
     CandidateIdentity,
     CandidateLinkRecord,
     CandidateProfileDetails,
     CandidateProjectRecord,
+    CandidateProjectSkillRecord,
     CandidateSkillRecord,
     CanonicalCandidateProfile,
     SkillRecord,
 )
+from src.matching.contracts import CandidateJobMatchResult
+from src.resume_tailoring.composition import build_composition_plan_from_profile
 from src.resume_tailoring.contracts import (
+    ResumeGenerationInput,
     TailoringInput,
     TailoringJobContext,
 )
@@ -201,20 +206,104 @@ def main():
     )
 
     skills = (
-        make_skill(301, 401, "Python", "python", "programming_language"),
-        make_skill(302, 402, "SQL", "sql", "query_language"),
-        make_skill(303, 403, "PostgreSQL", "postgresql", "database"),
-        make_skill(304, 404, "SQLAlchemy", "sqlalchemy", "database"),
-        make_skill(305, 405, "Alembic", "alembic", "database"),
-        make_skill(306, 406, "Docker", "docker", "devops"),
-        make_skill(307, 407, "Git", "git", "developer_tool"),
-        make_skill(308, 408, "GitHub", "github", "developer_tool"),
-        make_skill(309, 409, "Linux", "linux", "operating_system"),
-        make_skill(310, 410, "REST API", "rest api", "backend"),
-        make_skill(311, 411, "JSON", "json", "data_format"),
-        make_skill(312, 412, "pytest", "pytest", "testing"),
-        make_skill(313, 413, "pandas", "pandas", "data_science"),
-        make_skill(314, 414, "NumPy", "numpy", "data_science"),
+        make_skill(
+            301,
+            401,
+            "Python",
+            "python",
+            "programming_language",
+        ),
+        make_skill(
+            302,
+            402,
+            "SQL",
+            "sql",
+            "query_language",
+        ),
+        make_skill(
+            303,
+            403,
+            "PostgreSQL",
+            "postgresql",
+            "database",
+        ),
+        make_skill(
+            304,
+            404,
+            "SQLAlchemy",
+            "sqlalchemy",
+            "database",
+        ),
+        make_skill(
+            305,
+            405,
+            "Alembic",
+            "alembic",
+            "database",
+        ),
+        make_skill(
+            306,
+            406,
+            "Docker",
+            "docker",
+            "devops",
+        ),
+        make_skill(
+            307,
+            407,
+            "Git",
+            "git",
+            "developer_tool",
+        ),
+        make_skill(
+            308,
+            408,
+            "GitHub",
+            "github",
+            "developer_tool",
+        ),
+        make_skill(
+            309,
+            409,
+            "Linux",
+            "linux",
+            "operating_system",
+        ),
+        make_skill(
+            310,
+            410,
+            "REST API",
+            "rest api",
+            "backend",
+        ),
+        make_skill(
+            311,
+            411,
+            "JSON",
+            "json",
+            "data_format",
+        ),
+        make_skill(
+            312,
+            412,
+            "pytest",
+            "pytest",
+            "testing",
+        ),
+        make_skill(
+            313,
+            413,
+            "pandas",
+            "pandas",
+            "data_science",
+        ),
+        make_skill(
+            314,
+            414,
+            "NumPy",
+            "numpy",
+            "data_science",
+        ),
         make_skill(
             315,
             415,
@@ -257,7 +346,13 @@ def main():
             "data pipelines",
             "data_engineering",
         ),
-        make_skill(321, 421, "ETL", "etl", "data_engineering"),
+        make_skill(
+            321,
+            421,
+            "ETL",
+            "etl",
+            "data_engineering",
+        ),
         make_skill(
             322,
             422,
@@ -279,8 +374,20 @@ def main():
             "transformers",
             "machine_learning",
         ),
-        make_skill(325, 425, "NLP", "nlp", "machine_learning"),
-        make_skill(326, 426, "LLMs", "llms", "machine_learning"),
+        make_skill(
+            325,
+            425,
+            "NLP",
+            "nlp",
+            "machine_learning",
+        ),
+        make_skill(
+            326,
+            426,
+            "LLMs",
+            "llms",
+            "machine_learning",
+        ),
         make_skill(
             327,
             427,
@@ -294,6 +401,125 @@ def main():
             "Semantic Search",
             "semantic search",
             "machine_learning",
+        ),
+    )
+
+    skills_by_name = {
+        skill.skill.normalized_name: skill.skill
+        for skill in skills
+    }
+
+    experience_skills = (
+        CandidateExperienceSkillRecord(
+            id=701,
+            experience_id=101,
+            skill=skills_by_name["python"],
+            usage_description="Used Python in AI and NLP workflows.",
+        ),
+        CandidateExperienceSkillRecord(
+            id=702,
+            experience_id=101,
+            skill=skills_by_name["docker"],
+            usage_description="Containerized development workflows.",
+        ),
+        CandidateExperienceSkillRecord(
+            id=703,
+            experience_id=101,
+            skill=skills_by_name["data validation"],
+            usage_description="Built automated validation workflows.",
+        ),
+        CandidateExperienceSkillRecord(
+            id=704,
+            experience_id=101,
+            skill=skills_by_name["machine learning"],
+            usage_description="Developed machine learning systems.",
+        ),
+        CandidateExperienceSkillRecord(
+            id=705,
+            experience_id=102,
+            skill=skills_by_name["python"],
+            usage_description="Used Python for cloud analytics workflows.",
+        ),
+        CandidateExperienceSkillRecord(
+            id=706,
+            experience_id=102,
+            skill=skills_by_name["sql"],
+            usage_description="Used SQL for data processing.",
+        ),
+        CandidateExperienceSkillRecord(
+            id=707,
+            experience_id=102,
+            skill=skills_by_name["etl"],
+            usage_description="Built reusable ETL components.",
+        ),
+        CandidateExperienceSkillRecord(
+            id=708,
+            experience_id=102,
+            skill=skills_by_name["data pipelines"],
+            usage_description="Built data-processing pipelines.",
+        ),
+        CandidateExperienceSkillRecord(
+            id=709,
+            experience_id=102,
+            skill=skills_by_name["data validation"],
+            usage_description=(
+                "Implemented monitoring and quality checks."
+            ),
+        ),
+    )
+
+    project_skills = (
+        CandidateProjectSkillRecord(
+            id=801,
+            project_id=201,
+            skill=skills_by_name["python"],
+            usage_description="Implemented the platform in Python.",
+        ),
+        CandidateProjectSkillRecord(
+            id=802,
+            project_id=201,
+            skill=skills_by_name["postgresql"],
+            usage_description="Used PostgreSQL for canonical storage.",
+        ),
+        CandidateProjectSkillRecord(
+            id=803,
+            project_id=201,
+            skill=skills_by_name["docker"],
+            usage_description="Used Docker for local infrastructure.",
+        ),
+        CandidateProjectSkillRecord(
+            id=804,
+            project_id=201,
+            skill=skills_by_name["data pipelines"],
+            usage_description=(
+                "Built multi-stage ingestion and normalization pipelines."
+            ),
+        ),
+        CandidateProjectSkillRecord(
+            id=805,
+            project_id=201,
+            skill=skills_by_name["data validation"],
+            usage_description="Implemented deterministic validation.",
+        ),
+        CandidateProjectSkillRecord(
+            id=806,
+            project_id=202,
+            skill=skills_by_name["python"],
+            usage_description="Built the analytics system in Python.",
+        ),
+        CandidateProjectSkillRecord(
+            id=807,
+            project_id=202,
+            skill=skills_by_name["machine learning"],
+            usage_description=(
+                "Trained and evaluated machine learning models."
+            ),
+        ),
+        CandidateProjectSkillRecord(
+            id=808,
+            project_id=203,
+            skill=skills_by_name["machine learning"],
+            usage_description="Evaluated multiple modeling approaches.",
         ),
     )
 
@@ -468,7 +694,10 @@ def main():
             CandidateLinkRecord(
                 id=1,
                 link_type="linkedin",
-                url="https://www.linkedin.com/in/synthetic-candidate",
+                url=(
+                    "https://www.linkedin.com/in/"
+                    "synthetic-candidate"
+                ),
                 label="LinkedIn",
                 is_primary=True,
             ),
@@ -491,8 +720,8 @@ def main():
         ),
         project_links=(),
         skills=skills,
-        experience_skills=(),
-        project_skills=(),
+        experience_skills=experience_skills,
+        project_skills=project_skills,
         education=(
             education_one,
             education_two,
@@ -513,6 +742,45 @@ def main():
         entity_relations=(),
     )
 
+    match_result = CandidateJobMatchResult(
+        candidate_id=999,
+        job_id=999,
+        matcher_version="synthetic-smoke",
+        overall_score=1.0,
+        skill_score=1.0,
+        title_relevance_score=1.0,
+        evidence_score=1.0,
+        compatibility_score=1.0,
+        matched_skills=(
+            "python",
+            "sql",
+            "postgresql",
+            "docker",
+            "etl",
+            "data pipelines",
+            "data validation",
+            "machine learning",
+        ),
+        missing_skills=(),
+        supporting_experience_ids=(101, 102),
+        supporting_project_ids=(201, 202, 203),
+        compatibility=(),
+        reasons=(),
+    )
+
+    composition_plan = build_composition_plan_from_profile(
+        profile,
+        tailoring_input,
+        match_result,
+    )
+
+    generation_input = ResumeGenerationInput(
+        tailoring_input=tailoring_input,
+        composition_plan=composition_plan,
+    )
+
+    print(f"Composition plan: {composition_plan}")
+
     client = genai.Client(
         api_key=os.environ["GEMINI_API_KEY"],
     )
@@ -522,10 +790,12 @@ def main():
         model="gemini-3.5-flash-lite",
     )
 
-    content = generator.generate(tailoring_input)
+    content = generator.generate(
+        generation_input,
+    )
 
     validate_generated_content(
-        tailoring_input,
+        generation_input,
         content,
     )
 
@@ -535,6 +805,7 @@ def main():
     )
 
     output_path = Path("/tmp/gemini_tailored_resume.tex")
+
     output_path.write_text(
         rendered_resume,
         encoding="utf-8",

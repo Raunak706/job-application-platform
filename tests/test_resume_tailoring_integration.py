@@ -7,9 +7,11 @@ from src.candidate_profile.service import CandidateProfileService
 from src.database.models import Job
 from src.database.session import engine
 from src.matching.service import MatchingService
+from src.resume_tailoring.composition import build_composition_plan_from_profile
 from src.resume_tailoring.contracts import (
     GeneratedExperienceContent,
     GeneratedProjectContent,
+    ResumeGenerationInput,
     StructuredResumeContent,
 )
 from src.resume_tailoring.renderer import render_resume
@@ -18,29 +20,47 @@ from src.resume_tailoring.validation import validate_generated_content
 
 
 class FakeResumeContentGenerator:
-    def generate(self, tailoring_input):
-        experience = tailoring_input.experiences[0]
-        project = tailoring_input.projects[0]
+    def generate(self, generation_input):
+        tailoring_input = generation_input.tailoring_input
+        composition_plan = generation_input.composition_plan
+
+        experiences_by_id = {
+            experience.id: experience
+            for experience in tailoring_input.experiences
+        }
+
+        projects_by_id = {
+            project.id: project
+            for project in tailoring_input.projects
+        }
 
         return StructuredResumeContent(
             professional_summary=(
                 "Data engineer focused on reliable data systems."
             ),
-            experiences=(
+            experiences=tuple(
                 GeneratedExperienceContent(
-                    experience_id=experience.id,
-                    bullets=(
-                        "Built Python and SQL data pipelines.",
+                    experience_id=allocation.experience_id,
+                    bullets=tuple(
+                        experiences_by_id[
+                            allocation.experience_id
+                        ].description
+                        for _ in range(allocation.target_bullets)
                     ),
-                ),
+                )
+                for allocation in composition_plan.experiences
             ),
-            projects=(
+            projects=tuple(
                 GeneratedProjectContent(
-                    project_id=project.id,
-                    bullets=(
-                        "Built a Python data processing platform.",
+                    project_id=allocation.project_id,
+                    bullets=tuple(
+                        projects_by_id[
+                            allocation.project_id
+                        ].description
+                        for _ in range(allocation.target_bullets)
                     ),
-                ),
+                )
+                for allocation in composition_plan.projects
             ),
             skills=tuple(
                 skill.skill.canonical_name
@@ -236,16 +256,43 @@ def test_resume_tailoring_real_service_path(session_factory):
         "Reduced failures by 50%."
     )
 
+    composition_plan = build_composition_plan_from_profile(
+        profile,
+        tailoring_input,
+        match_result,
+    )
+
+    assert len(composition_plan.experiences) == 1
+    assert len(composition_plan.projects) == 1
+
+    assert composition_plan.experiences[0].experience_id == (
+        tailoring_input.experiences[0].id
+    )
+    assert composition_plan.projects[0].project_id == (
+        tailoring_input.projects[0].id
+    )
+
+    assert composition_plan.experiences[0].target_bullets == 4
+    assert composition_plan.projects[0].target_bullets == 2
+
+    generation_input = ResumeGenerationInput(
+        tailoring_input=tailoring_input,
+        composition_plan=composition_plan,
+    )
+
     generator = FakeResumeContentGenerator()
 
     generated_content = generator.generate(
-        tailoring_input,
+        generation_input,
     )
 
     validate_generated_content(
-        tailoring_input,
+        generation_input,
         generated_content,
     )
+
+    assert len(generated_content.experiences[0].bullets) == 4
+    assert len(generated_content.projects[0].bullets) == 2
 
     rendered_resume = render_resume(
         profile,
@@ -255,15 +302,15 @@ def test_resume_tailoring_real_service_path(session_factory):
     assert r"\documentclass[10pt]{article}" in rendered_resume
     assert r"\textbf{Resume Tailoring Candidate}" in rendered_resume
 
-    assert r"\section{Professional Summary}" in rendered_resume
+    assert r"\section{Professional Summary}" not in rendered_resume
     assert (
-        "Data engineer focused on reliable data systems."
-        in rendered_resume
+        generated_content.professional_summary
+        not in rendered_resume
     )
 
-    assert r"\section{Experience}" in rendered_resume
+    assert r"\section{Professional Experience}" in rendered_resume
     assert "Example Company" in rendered_resume
-    assert "Data Engineer" in rendered_resume
+    assert r"\emph{Data Engineer}" in rendered_resume
     assert "Built Python and SQL data pipelines." in rendered_resume
 
     assert r"\section{Projects}" in rendered_resume
@@ -273,7 +320,8 @@ def test_resume_tailoring_real_service_path(session_factory):
         in rendered_resume
     )
 
-    assert r"\section{Skills}" in rendered_resume
+    assert r"\section{Technical and Other Skills}" in rendered_resume
+    assert r"\textbf{Programming \& Data:}" in rendered_resume
     assert "Python" in rendered_resume
     assert "SQL" in rendered_resume
     assert "Apache Spark" not in rendered_resume

@@ -1,6 +1,36 @@
 from typing import Any
 
-from src.resume_tailoring.contracts import TailoringInput
+from src.resume_tailoring.contracts import (
+    ResumeGenerationInput,
+    TailoringInput,
+)
+
+
+def serialize_generation_input(
+    generation_input: ResumeGenerationInput,
+) -> dict[str, Any]:
+    result = serialize_tailoring_input(
+        generation_input.tailoring_input,
+    )
+
+    result["composition_guidance"] = {
+        "experiences": [
+            {
+                "experience_id": allocation.experience_id,
+                "target_bullets": allocation.target_bullets,
+            }
+            for allocation in generation_input.composition_plan.experiences
+        ],
+        "projects": [
+            {
+                "project_id": allocation.project_id,
+                "target_bullets": allocation.target_bullets,
+            }
+            for allocation in generation_input.composition_plan.projects
+        ],
+    }
+
+    return result
 
 
 def serialize_tailoring_input(

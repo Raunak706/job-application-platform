@@ -1,14 +1,15 @@
 from typing import Protocol
 
 from src.resume_tailoring.contracts import (
+    ResumeGenerationInput,
     StructuredResumeContent,
-    TailoringInput,
 )
 
 
 class ResumeContentGenerator(Protocol):
     def generate(
         self,
-        tailoring_input: TailoringInput,
+        generation_input: ResumeGenerationInput,
     ) -> StructuredResumeContent:
         ...
+        

@@ -24,6 +24,50 @@ _LATEX_ESCAPE_MAP = {
     "^": r"\textasciicircum{}",
 }
 
+_SKILL_DISPLAY_GROUPS = (
+    (
+        "Programming & Data",
+        frozenset(
+            {
+                "programming_language",
+                "database",
+                "data_engineering",
+                "data_processing",
+                "data_platform",
+                "analytics",
+                "api",
+                "data_format",
+                "software_engineering",
+            }
+        ),
+    ),
+    (
+        "ML & AI",
+        frozenset(
+            {
+                "machine_learning",
+                "data_science",
+                "machine_learning_platform",
+                "library",
+            }
+        ),
+    ),
+    (
+        "Tools & Platforms",
+        frozenset(
+            {
+                "cloud",
+                "devops",
+                "version_control",
+                "operating_system",
+                "testing",
+                "tool",
+                "database_tool",
+            }
+        ),
+    ),
+)
+
 
 def escape_latex(value: str) -> str:
     return "".join(
@@ -118,45 +162,41 @@ def render_education(profile: CanonicalCandidateProfile) -> str:
         else:
             degree_text = degree or field
 
-        date_value = (
-            education.graduation_date
-            or education.end_date
+        location = _format_location(
+            education.location,
+            education.country,
         )
-        date_text = _format_month_year(date_value)
 
-        details = []
-
-        if education.gpa:
-            details.append(f"GPA: {education.gpa}")
-
-        courses = [
-            course
-            for course in profile.courses
-            if course.education_id == education.id
-        ]
-
-        if courses:
-            course_text = ", ".join(
-                _format_course(course)
-                for course in courses
-            )
-            details.append(f"Coursework: {course_text}")
-
-        lines.append(
-            r"\eduitem{"
+        heading = (
+            r"\textbf{"
             + escape_latex(education.institution)
-            + "}{"
-            + escape_latex(degree_text)
-            + "}{"
-            + escape_latex(date_text)
             + "}"
         )
 
-        if details:
-            lines.append(
-                escape_latex(" | ".join(details))
-                + r"\\[-2pt]"
+        if location:
+            heading += ", " + escape_latex(location)
+
+        if degree_text:
+            heading += (
+                r" \hfill "
+                + escape_latex(degree_text)
             )
+
+        lines.append(heading + r"\\")
+
+    courses = list(profile.courses)
+
+    if courses:
+        course_text = ", ".join(
+            _format_course(course)
+            for course in courses
+        )
+
+        lines.append(r"\vspace{-2pt}")
+        lines.append(
+            r"\textbf{Relevant Coursework:} "
+            + escape_latex(course_text)
+        )
 
     return "\n".join(lines)
 
@@ -164,17 +204,7 @@ def render_education(profile: CanonicalCandidateProfile) -> str:
 def render_professional_summary(
     content: StructuredResumeContent,
 ) -> str:
-    summary = content.professional_summary.strip()
-
-    if not summary:
-        return ""
-
-    return "\n".join(
-        (
-            r"\section{Professional Summary}",
-            escape_latex(summary),
-        )
-    )
+    return ""
 
 
 def render_experience(
@@ -189,7 +219,7 @@ def render_experience(
         for experience in profile.experiences
     }
 
-    lines = [r"\section{Experience}"]
+    lines = [r"\section{Professional Experience}"]
 
     for generated in content.experiences:
         experience = experiences_by_id.get(
@@ -202,30 +232,39 @@ def render_experience(
                 "canonical candidate profile."
             )
 
-        lines.append(
-            r"\textbf{"
-            + escape_latex(experience.title)
-            + "}, "
-            + escape_latex(experience.company)
-            + r" \hfill "
-            + escape_latex(
-                _format_date_range(
-                    experience.start_date,
-                    experience.end_date,
-                    experience.is_current,
-                )
-            )
-            + r"\\"
-        )
-
         location = _format_location(
             experience.location,
             experience.country,
         )
 
+        heading = (
+            r"\textbf{"
+            + escape_latex(experience.company)
+            + "}"
+        )
+
         if location:
+            heading += ", " + escape_latex(location)
+
+        date_text = _format_date_range(
+            experience.start_date,
+            experience.end_date,
+            experience.is_current,
+        )
+
+        if date_text:
+            heading += (
+                r" \hfill "
+                + escape_latex(date_text)
+            )
+
+        lines.append(heading + r"\\")
+
+        if experience.title:
             lines.append(
-                escape_latex(location) + r"\\[-2pt]"
+                r"\emph{"
+                + escape_latex(experience.title)
+                + "}"
             )
 
         lines.append(r"\begin{itemize}")
@@ -265,7 +304,11 @@ def render_projects(
                 "canonical candidate profile."
             )
 
-        heading = r"\textbf{" + escape_latex(project.name) + "}"
+        heading = (
+            r"\textbf{"
+            + escape_latex(project.name)
+            + "}"
+        )
 
         date_text = _format_date_range(
             project.start_date,
@@ -281,8 +324,7 @@ def render_projects(
                 + escape_latex(date_text)
             )
 
-        lines.append(heading + r"\\")
-
+        lines.append(heading)
         lines.append(r"\begin{itemize}")
 
         for bullet in generated.bullets:
@@ -295,16 +337,73 @@ def render_projects(
     return "\n".join(lines)
 
 
-def render_skills(content: StructuredResumeContent) -> str:
+def render_skills(
+    profile: CanonicalCandidateProfile,
+    content: StructuredResumeContent,
+) -> str:
     if not content.skills:
         return ""
 
-    return "\n".join(
-        (
-            r"\section{Skills}",
-            escape_latex(", ".join(content.skills)),
+    canonical_skills = {
+        candidate_skill.skill.canonical_name.casefold(): (
+            candidate_skill.skill
         )
-    )
+        for candidate_skill in profile.skills
+    }
+
+    grouped_skills = {
+        display_name: []
+        for display_name, _ in _SKILL_DISPLAY_GROUPS
+    }
+
+    uncategorized_skills = []
+
+    for selected_skill in content.skills:
+        skill_record = canonical_skills.get(
+            selected_skill.casefold()
+        )
+
+        if skill_record is None:
+            uncategorized_skills.append(selected_skill)
+            continue
+
+        category = skill_record.category
+        matched_group = None
+
+        if category:
+            for display_name, categories in _SKILL_DISPLAY_GROUPS:
+                if category in categories:
+                    matched_group = display_name
+                    break
+
+        if matched_group is None:
+            uncategorized_skills.append(selected_skill)
+        else:
+            grouped_skills[matched_group].append(selected_skill)
+
+    lines = [r"\section{Technical and Other Skills}"]
+
+    for display_name, _ in _SKILL_DISPLAY_GROUPS:
+        skills = grouped_skills[display_name]
+
+        if not skills:
+            continue
+
+        lines.append(
+            r"\textbf{"
+            + escape_latex(display_name)
+            + r":} "
+            + escape_latex(", ".join(skills))
+            + r"\\"
+        )
+
+    if uncategorized_skills:
+        lines.append(
+            r"\textbf{Other:} "
+            + escape_latex(", ".join(uncategorized_skills))
+        )
+
+    return "\n".join(lines)
 
 
 def render_resume(
@@ -327,7 +426,10 @@ def render_resume(
             profile,
             content,
         ),
-        "{{SKILLS}}": render_skills(content),
+        "{{SKILLS}}": render_skills(
+            profile,
+            content,
+        ),
     }
 
     for placeholder, value in replacements.items():

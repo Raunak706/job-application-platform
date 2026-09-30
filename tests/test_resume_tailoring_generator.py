@@ -1,6 +1,6 @@
 from src.resume_tailoring.contracts import (
+    ResumeGenerationInput,
     StructuredResumeContent,
-    TailoringInput,
 )
 from src.resume_tailoring.content_generator import ResumeContentGenerator
 
@@ -8,7 +8,7 @@ from src.resume_tailoring.content_generator import ResumeContentGenerator
 class FakeResumeContentGenerator:
     def generate(
         self,
-        tailoring_input: TailoringInput,
+        generation_input: ResumeGenerationInput,
     ) -> StructuredResumeContent:
         return StructuredResumeContent(
             professional_summary=None,

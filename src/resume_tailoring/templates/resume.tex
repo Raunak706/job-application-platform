@@ -6,6 +6,7 @@
 \usepackage{setspace}
 \usepackage{titlesec}
 \usepackage{xcolor}
+\usepackage{zref-savepos}
 
 \definecolor{darkblue}{RGB}{0,0,120}
 
@@ -25,20 +26,18 @@
   {\normalsize\bfseries\color{darkblue}}
   {}
   {0pt}
-  {\vspace{-0.3em}\hrule height 0.3pt \vspace{0.35em}}
+  {\vspace{-0.3em}\hrule height 0.3pt \vspace{0.25em}}
   []
 
 \titlespacing*{\section}
   {0pt}
-  {0.7em}
-  {0.3em}
-
-\newcommand{\eduitem}[3]{%
-  \textbf{#1}, #2 \hfill #3\\[-2pt]%
-}
+  {0.4em}
+  {0.2em}
 
 \begin{document}
 \pagenumbering{gobble}
+
+\zsavepos{resume-content-start}
 
 {{HEADER}}
 
@@ -51,5 +50,30 @@
 {{PROJECTS}}
 
 {{SKILLS}}
+
+\zsavepos{resume-content-end}
+
+\makeatletter
+\AtEndDocument{
+  \begingroup
+  \edef\ResumeStartY{
+    \zposy{resume-content-start}
+  }
+  \edef\ResumeEndY{
+    \zposy{resume-content-end}
+  }
+  \dimen0=\ResumeStartY sp
+  \advance\dimen0 by -\ResumeEndY sp
+  \typeout{
+    RESUME_CONTENT_HEIGHT_POINTS=
+    \strip@pt\dimen0
+  }
+  \typeout{
+    RESUME_USABLE_HEIGHT_POINTS=
+    \strip@pt\textheight
+  }
+  \endgroup
+}
+\makeatother
 
 \end{document}

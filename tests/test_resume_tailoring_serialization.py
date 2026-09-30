@@ -7,15 +7,24 @@ from src.candidate_profile.contracts import (
     CandidateSkillRecord,
     SkillRecord,
 )
+from src.resume_tailoring.composition import (
+    ExperienceContentAllocation,
+    ProjectContentAllocation,
+    ResumeCompositionPlan,
+)
 from src.resume_tailoring.contracts import (
+    ResumeGenerationInput,
     TailoringInput,
     TailoringJobContext,
 )
-from src.resume_tailoring.serialization import serialize_tailoring_input
+from src.resume_tailoring.serialization import (
+    serialize_generation_input,
+    serialize_tailoring_input,
+)
 
 
-def test_serialize_tailoring_input_separates_job_and_candidate_facts():
-    tailoring_input = TailoringInput(
+def make_tailoring_input():
+    return TailoringInput(
         candidate_id=1,
         job=TailoringJobContext(
             job_id=100,
@@ -96,7 +105,9 @@ def test_serialize_tailoring_input_separates_job_and_candidate_facts():
         ),
     )
 
-    result = serialize_tailoring_input(tailoring_input)
+
+def test_serialize_tailoring_input_separates_job_and_candidate_facts():
+    result = serialize_tailoring_input(make_tailoring_input())
 
     assert result["job_context"]["description"] == (
         "Looking for Python and Spark experience."
@@ -116,6 +127,7 @@ def test_serialize_tailoring_input_separates_job_and_candidate_facts():
     )
 
     assert "Spark" not in candidate_facts["skills"]
+
 
 def test_serialize_tailoring_input_handles_missing_optional_data():
     tailoring_input = TailoringInput(
@@ -152,3 +164,67 @@ def test_serialize_tailoring_input_handles_missing_optional_data():
     assert candidate_facts["projects"] == []
     assert candidate_facts["skills"] == []
     assert candidate_facts["achievements"] == []
+
+
+def test_serialize_generation_input_keeps_composition_guidance_separate():
+    tailoring_input = make_tailoring_input()
+
+    generation_input = ResumeGenerationInput(
+        tailoring_input=tailoring_input,
+        composition_plan=ResumeCompositionPlan(
+            experiences=(
+                ExperienceContentAllocation(
+                    experience_id=101,
+                    target_bullets=4,
+                ),
+            ),
+            projects=(
+                ProjectContentAllocation(
+                    project_id=201,
+                    target_bullets=2,
+                ),
+            ),
+        ),
+    )
+
+    result = serialize_generation_input(generation_input)
+
+    assert result["job_context"]["job_id"] == 100
+    assert result["approved_candidate_facts"]["candidate_id"] == 1
+
+    assert result["composition_guidance"] == {
+        "experiences": [
+            {
+                "experience_id": 101,
+                "target_bullets": 4,
+            },
+        ],
+        "projects": [
+            {
+                "project_id": 201,
+                "target_bullets": 2,
+            },
+        ],
+    }
+
+    assert (
+        "composition_guidance"
+        not in result["approved_candidate_facts"]
+    )
+
+
+def test_serialize_generation_input_handles_empty_composition_plan():
+    generation_input = ResumeGenerationInput(
+        tailoring_input=make_tailoring_input(),
+        composition_plan=ResumeCompositionPlan(
+            experiences=(),
+            projects=(),
+        ),
+    )
+
+    result = serialize_generation_input(generation_input)
+
+    assert result["composition_guidance"] == {
+        "experiences": [],
+        "projects": [],
+    }

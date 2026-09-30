@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from src.candidate_profile.contracts import (
     CandidateAchievementRecord,
@@ -6,6 +7,9 @@ from src.candidate_profile.contracts import (
     CandidateProjectRecord,
     CandidateSkillRecord,
 )
+
+if TYPE_CHECKING:
+    from src.resume_tailoring.composition import ResumeCompositionPlan
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,6 +35,12 @@ class TailoringInput:
     projects: tuple[CandidateProjectRecord, ...]
     skills: tuple[CandidateSkillRecord, ...]
     achievements: tuple[CandidateAchievementRecord, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class ResumeGenerationInput:
+    tailoring_input: TailoringInput
+    composition_plan: "ResumeCompositionPlan"
 
 
 @dataclass(frozen=True, slots=True)

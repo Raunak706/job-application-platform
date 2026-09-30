@@ -7,11 +7,11 @@ from google.genai import errors, types
 from src.resume_tailoring.contracts import (
     GeneratedExperienceContent,
     GeneratedProjectContent,
+    ResumeGenerationInput,
     StructuredResumeContent,
-    TailoringInput,
 )
 from src.resume_tailoring.prompt import build_generation_instructions
-from src.resume_tailoring.serialization import serialize_tailoring_input
+from src.resume_tailoring.serialization import serialize_generation_input
 
 
 _RESPONSE_JSON_SCHEMA = {
@@ -95,24 +95,26 @@ class GeminiResumeContentGenerator:
 
     def generate(
         self,
-        tailoring_input: TailoringInput,
+        generation_input: ResumeGenerationInput,
     ) -> StructuredResumeContent:
         response = self._generate_with_retry(
-            tailoring_input,
+            generation_input,
         )
 
         return _parse_response(response.parsed)
 
     def _generate_with_retry(
         self,
-        tailoring_input: TailoringInput,
+        generation_input: ResumeGenerationInput,
     ) -> Any:
         for attempt in range(3):
             try:
                 return self._client.models.generate_content(
                     model=self._model,
                     contents=json.dumps(
-                        serialize_tailoring_input(tailoring_input),
+                        serialize_generation_input(
+                            generation_input,
+                        ),
                     ),
                     config=types.GenerateContentConfig(
                         system_instruction=build_generation_instructions(),
