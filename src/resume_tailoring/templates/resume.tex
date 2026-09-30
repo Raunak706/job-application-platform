@@ -1,0 +1,55 @@
+\documentclass[10pt]{article}
+
+\usepackage[margin=0.5in]{geometry}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{xcolor}
+
+\definecolor{darkblue}{RGB}{0,0,120}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\setstretch{1.0}
+
+\setlist[itemize]{
+  leftmargin=1.2em,
+  topsep=2pt,
+  itemsep=1pt,
+  parsep=0pt,
+  partopsep=0pt
+}
+
+\titleformat{\section}
+  {\normalsize\bfseries\color{darkblue}}
+  {}
+  {0pt}
+  {\vspace{-0.3em}\hrule height 0.3pt \vspace{0.35em}}
+  []
+
+\titlespacing*{\section}
+  {0pt}
+  {0.7em}
+  {0.3em}
+
+\newcommand{\eduitem}[3]{%
+  \textbf{#1}, #2 \hfill #3\\[-2pt]%
+}
+
+\begin{document}
+\pagenumbering{gobble}
+
+{{HEADER}}
+
+{{EDUCATION}}
+
+{{PROFESSIONAL_SUMMARY}}
+
+{{EXPERIENCE}}
+
+{{PROJECTS}}
+
+{{SKILLS}}
+
+\end{document}
