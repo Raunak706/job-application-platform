@@ -8,11 +8,11 @@ from src.candidate_profile.contracts import (
     CandidateIdentity,
     CandidateProfileDetails,
     CandidateProjectRecord,
+    CandidateProjectSkillRecord,
     CandidateSkillRecord,
     CanonicalCandidateProfile,
     SkillRecord,
 )
-
 from src.database.models import Job
 from src.matching.contracts import CandidateJobMatchResult
 from src.resume_tailoring.selector import build_tailoring_input
@@ -24,6 +24,7 @@ def make_profile(
     experiences=(),
     projects=(),
     skills=(),
+    project_skills=(),
 ):
     return CanonicalCandidateProfile(
         identity=CandidateIdentity(
@@ -45,7 +46,7 @@ def make_profile(
         project_links=(),
         skills=skills,
         experience_skills=(),
-        project_skills=(),
+        project_skills=project_skills,
         education=(),
         courses=(),
         certifications=(),
@@ -103,6 +104,45 @@ def make_match(
         supporting_project_ids=supporting_project_ids,
         compatibility=(),
         reasons=(),
+    )
+
+
+def make_project(project_id, name):
+    return CandidateProjectRecord(
+        id=project_id,
+        name=name,
+        role=None,
+        organization=None,
+        description=f"{name} description.",
+        problem=None,
+        solution=None,
+        architecture=None,
+        outcome=None,
+        start_date=None,
+        end_date=None,
+        status="completed",
+        verification_status="verified",
+        visibility="resume_safe",
+    )
+
+
+def make_project_skill(
+    record_id,
+    project_id,
+    skill_id,
+    canonical_name,
+    normalized_name,
+):
+    return CandidateProjectSkillRecord(
+        id=record_id,
+        project_id=project_id,
+        skill=SkillRecord(
+            skill_id=skill_id,
+            canonical_name=canonical_name,
+            normalized_name=normalized_name,
+            category=None,
+        ),
+        usage_description=None,
     )
 
 
@@ -355,6 +395,7 @@ def test_build_tailoring_input_rejects_job_mismatch():
             make_match(job_id=200),
         )
 
+
 def test_build_tailoring_input_selects_achievements_for_selected_evidence():
     experience = CandidateExperienceRecord(
         id=101,
@@ -525,3 +566,176 @@ def test_build_tailoring_input_excludes_application_only_records():
     )
 
     assert result.experiences == ()
+
+
+def test_build_tailoring_input_limits_projects_to_three():
+    project_one = make_project(201, "Project One")
+    project_two = make_project(202, "Project Two")
+    project_three = make_project(203, "Project Three")
+    project_four = make_project(204, "Project Four")
+
+    project_skills = (
+        make_project_skill(1, 201, 401, "Python", "python"),
+        make_project_skill(2, 202, 401, "Python", "python"),
+        make_project_skill(3, 203, 401, "Python", "python"),
+        make_project_skill(4, 204, 401, "Python", "python"),
+    )
+
+    result = build_tailoring_input(
+        make_profile(
+            projects=(
+                project_one,
+                project_two,
+                project_three,
+                project_four,
+            ),
+            project_skills=project_skills,
+        ),
+        make_job(),
+        make_match(
+            matched_skills=("python",),
+            supporting_project_ids=(201, 202, 203, 204),
+        ),
+    )
+
+    assert result.projects == (
+        project_one,
+        project_two,
+        project_three,
+    )
+
+
+def test_build_tailoring_input_ranks_projects_by_matched_skill_evidence():
+    project_one = make_project(201, "Python Project")
+    project_two = make_project(202, "Data Platform")
+    project_three = make_project(203, "ETL Project")
+    project_four = make_project(204, "Full Data System")
+
+    project_skills = (
+        make_project_skill(1, 201, 401, "Python", "python"),
+        make_project_skill(2, 202, 401, "Python", "python"),
+        make_project_skill(3, 202, 402, "SQL", "sql"),
+        make_project_skill(4, 203, 403, "ETL", "etl"),
+        make_project_skill(5, 204, 401, "Python", "python"),
+        make_project_skill(6, 204, 402, "SQL", "sql"),
+        make_project_skill(7, 204, 403, "ETL", "etl"),
+    )
+
+    result = build_tailoring_input(
+        make_profile(
+            projects=(
+                project_one,
+                project_two,
+                project_three,
+                project_four,
+            ),
+            project_skills=project_skills,
+        ),
+        make_job(),
+        make_match(
+            matched_skills=("python", "sql", "etl"),
+            supporting_project_ids=(201, 202, 203, 204),
+        ),
+    )
+
+    assert result.projects == (
+        project_four,
+        project_two,
+        project_one,
+    )
+
+
+def test_build_tailoring_input_uses_profile_order_for_project_rank_ties():
+    project_one = make_project(201, "First Project")
+    project_two = make_project(202, "Second Project")
+    project_three = make_project(203, "Third Project")
+    project_four = make_project(204, "Fourth Project")
+
+    project_skills = (
+        make_project_skill(1, 201, 401, "Python", "python"),
+        make_project_skill(2, 202, 401, "Python", "python"),
+        make_project_skill(3, 203, 401, "Python", "python"),
+        make_project_skill(4, 204, 401, "Python", "python"),
+    )
+
+    result = build_tailoring_input(
+        make_profile(
+            projects=(
+                project_three,
+                project_one,
+                project_four,
+                project_two,
+            ),
+            project_skills=project_skills,
+        ),
+        make_job(),
+        make_match(
+            matched_skills=("python",),
+            supporting_project_ids=(201, 202, 203, 204),
+        ),
+    )
+
+    assert result.projects == (
+        project_three,
+        project_one,
+        project_four,
+    )
+
+
+def test_build_tailoring_input_never_selects_unsupported_project():
+    supported_project = make_project(201, "Supported Project")
+    unsupported_project = make_project(202, "Unsupported Project")
+
+    project_skills = (
+        make_project_skill(1, 201, 401, "Python", "python"),
+        make_project_skill(2, 202, 401, "Python", "python"),
+        make_project_skill(3, 202, 402, "SQL", "sql"),
+        make_project_skill(4, 202, 403, "ETL", "etl"),
+    )
+
+    result = build_tailoring_input(
+        make_profile(
+            projects=(
+                supported_project,
+                unsupported_project,
+            ),
+            project_skills=project_skills,
+        ),
+        make_job(),
+        make_match(
+            matched_skills=("python", "sql", "etl"),
+            supporting_project_ids=(201,),
+        ),
+    )
+
+    assert result.projects == (supported_project,)
+
+
+def test_build_tailoring_input_preserves_project_order_without_skill_links():
+    project_one = make_project(201, "Project One")
+    project_two = make_project(202, "Project Two")
+    project_three = make_project(203, "Project Three")
+    project_four = make_project(204, "Project Four")
+
+    result = build_tailoring_input(
+        make_profile(
+            projects=(
+                project_two,
+                project_four,
+                project_one,
+                project_three,
+            ),
+            project_skills=(),
+        ),
+        make_job(),
+        make_match(
+            matched_skills=("python",),
+            supporting_project_ids=(201, 202, 203, 204),
+        ),
+    )
+
+    assert result.projects == (
+        project_two,
+        project_four,
+        project_one,
+    )

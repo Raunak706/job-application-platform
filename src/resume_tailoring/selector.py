@@ -18,6 +18,8 @@ ALLOWED_RESUME_VISIBILITIES = {
     "resume_safe",
 }
 
+MAX_SELECTED_PROJECTS = 3
+
 
 def build_tailoring_input(
     profile: CanonicalCandidateProfile,
@@ -57,14 +59,10 @@ def build_tailoring_input(
         )
     )
 
-    projects = tuple(
-        project
-        for project in profile.projects
-        if project.id in supporting_project_ids
-        and _is_allowed_fact(
-            project.verification_status,
-            project.visibility,
-        )
+    projects = _select_projects(
+        profile,
+        supporting_project_ids,
+        matched_skills,
     )
 
     skills = tuple(
@@ -121,6 +119,62 @@ def build_tailoring_input(
         projects=projects,
         skills=skills,
         achievements=achievements,
+    )
+
+
+def _select_projects(
+    profile: CanonicalCandidateProfile,
+    supporting_project_ids: set[int],
+    matched_skills: set[str],
+):
+    eligible_projects = tuple(
+        project
+        for project in profile.projects
+        if project.id in supporting_project_ids
+        and _is_allowed_fact(
+            project.verification_status,
+            project.visibility,
+        )
+    )
+
+    if len(eligible_projects) <= MAX_SELECTED_PROJECTS:
+        return eligible_projects
+
+    matched_skill_counts: dict[int, set[str]] = {
+        project.id: set()
+        for project in eligible_projects
+    }
+
+    eligible_project_ids = set(matched_skill_counts)
+
+    for project_skill in profile.project_skills:
+        if project_skill.project_id not in eligible_project_ids:
+            continue
+
+        normalized_name = (
+            project_skill.skill.normalized_name.casefold()
+        )
+
+        if normalized_name in matched_skills:
+            matched_skill_counts[
+                project_skill.project_id
+            ].add(normalized_name)
+
+    profile_order = {
+        project.id: index
+        for index, project in enumerate(profile.projects)
+    }
+
+    ranked_projects = sorted(
+        eligible_projects,
+        key=lambda project: (
+            -len(matched_skill_counts[project.id]),
+            profile_order[project.id],
+        ),
+    )
+
+    return tuple(
+        ranked_projects[:MAX_SELECTED_PROJECTS]
     )
 
 
