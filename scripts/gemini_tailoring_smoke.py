@@ -32,6 +32,10 @@ from src.resume_tailoring.gemini_content_generator import (
 from src.resume_tailoring.renderer import render_resume
 from src.resume_tailoring.validation import validate_generated_content
 
+from src.resume_tailoring.fit_orchestration import fit_composition_plan
+from src.resume_tailoring.fit_pipeline import create_plan_measurement_callback
+from src.resume_tailoring.fit_relevance import build_fit_relevance
+
 
 def make_skill(
     candidate_skill_id,
@@ -774,12 +778,13 @@ def main():
         match_result,
     )
 
-    generation_input = ResumeGenerationInput(
-        tailoring_input=tailoring_input,
-        composition_plan=composition_plan,
-    )
+    print(f"Initial composition plan: {composition_plan}")
 
-    print(f"Composition plan: {composition_plan}")
+    relevance = build_fit_relevance(
+        profile=profile,
+        tailoring_input=tailoring_input,
+        match_result=match_result,
+    )
 
     client = genai.Client(
         api_key=os.environ["GEMINI_API_KEY"],
@@ -790,28 +795,67 @@ def main():
         model="gemini-3.5-flash-lite",
     )
 
-    content = generator.generate(
-        generation_input,
+    rendered_outputs = []
+
+    def render_and_capture(
+        candidate_profile,
+        content,
+    ):
+        rendered = render_resume(
+            candidate_profile,
+            content,
+        )
+        rendered_outputs.append(rendered)
+        return rendered
+
+    measurement_callback = create_plan_measurement_callback(
+        profile=profile,
+        tailoring_input=tailoring_input,
+        generator=generator,
+        work_directory=Path("/tmp/gemini_fit_attempts"),
+        render_resume_fn=render_and_capture,
     )
 
-    validate_generated_content(
-        generation_input,
-        content,
+    fit_result = fit_composition_plan(
+        initial_plan=composition_plan,
+        experience_relevance=relevance.experiences,
+        project_relevance=relevance.projects,
+        measure_plan=measurement_callback,
     )
 
-    rendered_resume = render_resume(
-        profile,
-        content,
-    )
+    if not rendered_outputs:
+        raise RuntimeError(
+            "Fit pipeline did not produce rendered resume content."
+        )
+
+    final_latex = rendered_outputs[-1]
 
     output_path = Path("/tmp/gemini_tailored_resume.tex")
 
     output_path.write_text(
-        rendered_resume,
+        final_latex,
         encoding="utf-8",
     )
 
-    print(content)
+    print(f"Final composition plan: {fit_result.plan}")
+    print(f"Fit status: {fit_result.fit_status}")
+    print(f"Attempts: {fit_result.attempts}")
+    print(
+        "Adjustment exhausted: "
+        f"{fit_result.adjustment_exhausted}"
+    )
+    print(
+        "Page count: "
+        f"{fit_result.measurement.page_count}"
+    )
+    print(
+        "Content height: "
+        f"{fit_result.measurement.content_height_points}"
+    )
+    print(
+        "Usable height: "
+        f"{fit_result.measurement.usable_height_points}"
+    )
     print(f"\nRendered LaTeX: {output_path}")
 
 
