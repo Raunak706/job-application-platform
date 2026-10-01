@@ -9,6 +9,7 @@ from src.resume_tailoring.content_generator import (
 )
 from src.resume_tailoring.contracts import (
     ResumeGenerationInput,
+    StructuredResumeContent,
     TailoringInput,
 )
 from src.resume_tailoring.page_fit import (
@@ -25,6 +26,45 @@ from src.resume_tailoring.renderer import (
 from src.resume_tailoring.validation import (
     validate_generated_content,
 )
+
+
+def create_content_measurement_callback(
+    *,
+    profile,
+    work_directory: Path,
+    render_resume_fn: Callable = render_resume,
+    compile_latex_fn: Callable = compile_latex,
+) -> Callable[[StructuredResumeContent], PageFitResult]:
+    attempt_number = 0
+
+    def measure_content(
+        content: StructuredResumeContent,
+    ) -> PageFitResult:
+        nonlocal attempt_number
+        attempt_number += 1
+
+        latex_source = render_resume_fn(
+            profile,
+            content,
+        )
+
+        attempt_directory = (
+            work_directory
+            / f"attempt_{attempt_number}"
+        )
+
+        compilation: LatexCompilationResult = (
+            compile_latex_fn(
+                latex_source=latex_source,
+                work_directory=attempt_directory,
+            )
+        )
+
+        return build_page_fit_result_from_compilation(
+            compilation
+        )
+
+    return measure_content
 
 
 def create_plan_measurement_callback(

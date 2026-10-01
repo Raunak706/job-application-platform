@@ -98,6 +98,18 @@ def build_tailoring_input(
         )
     )
 
+    experience_skills = tuple(
+        experience_skill
+        for experience_skill in profile.experience_skills
+        if experience_skill.experience_id in selected_experience_ids
+    )
+
+    project_skills = tuple(
+        project_skill
+        for project_skill in profile.project_skills
+        if project_skill.project_id in selected_project_ids
+    )
+
     job_context = TailoringJobContext(
         job_id=job.id,
         title=job.title,
@@ -119,6 +131,8 @@ def build_tailoring_input(
         projects=projects,
         skills=skills,
         achievements=achievements,
+        experience_skills=experience_skills,
+        project_skills=project_skills,
     )
 
 

@@ -83,6 +83,27 @@ def build_composition_plan_from_profile(
     )
 
 
+def build_rich_composition_plan(
+    tailoring_input: TailoringInput,
+) -> ResumeCompositionPlan:
+    return ResumeCompositionPlan(
+        experiences=tuple(
+            ExperienceContentAllocation(
+                experience_id=experience.id,
+                target_bullets=MAX_EXPERIENCE_BULLETS,
+            )
+            for experience in tailoring_input.experiences
+        ),
+        projects=tuple(
+            ProjectContentAllocation(
+                project_id=project.id,
+                target_bullets=MAX_PROJECT_BULLETS,
+            )
+            for project in tailoring_input.projects
+        ),
+    )
+
+
 def build_evidence_relevance(
     *,
     selected_ids: tuple[int, ...],

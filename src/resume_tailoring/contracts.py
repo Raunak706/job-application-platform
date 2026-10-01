@@ -4,7 +4,9 @@ from typing import TYPE_CHECKING
 from src.candidate_profile.contracts import (
     CandidateAchievementRecord,
     CandidateExperienceRecord,
+    CandidateExperienceSkillRecord,
     CandidateProjectRecord,
+    CandidateProjectSkillRecord,
     CandidateSkillRecord,
 )
 
@@ -35,6 +37,8 @@ class TailoringInput:
     projects: tuple[CandidateProjectRecord, ...]
     skills: tuple[CandidateSkillRecord, ...]
     achievements: tuple[CandidateAchievementRecord, ...] = ()
+    experience_skills: tuple[CandidateExperienceSkillRecord, ...] = ()
+    project_skills: tuple[CandidateProjectSkillRecord, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,4 +1,4 @@
-PROMPT_VERSION = "v3"
+PROMPT_VERSION = "v4"
 
 
 def build_generation_instructions() -> str:
@@ -22,7 +22,6 @@ The input has three distinct sections:
 FACTUAL INTEGRITY
 
 - Every candidate claim must be supported by approved_candidate_facts.
-- Never invent, infer, estimate, or assume candidate information.
 - Do not invent skills, technologies, experience, projects, responsibilities,
   achievements, metrics, outcomes, employers, titles, dates, locations,
   architecture, scale, leadership, collaboration, or business impact.
@@ -36,6 +35,48 @@ FACTUAL INTEGRITY
 - If information is missing, omit the unsupported claim rather than filling
   the gap.
 - A factual bullet without a metric is better than an invented metric.
+
+FAITHFUL SEMANTIC ABSTRACTION
+
+You may use faithful semantic abstraction when describing approved candidate
+facts.
+
+A faithful abstraction restates or generalizes supported facts using standard technical terminology
+when the meaning is directly supported by approved candidate facts.
+
+Examples:
+
+- Whisper ASR may be described as speech recognition or automatic speech
+  recognition when that wording accurately describes the supplied use.
+- MarianMT may be described as machine translation when that wording accurately
+  describes the supplied use.
+- A project using Whisper ASR and MarianMT for speech-to-translated-text work
+  may be described as a speech-translation pipeline when the supplied facts
+  support that relationship.
+- EEG filtering, artifact removal, FFT, and frequency-domain feature extraction
+  may be described using signal-processing terminology when those operations
+  are supplied facts.
+- Federated querying across PostgreSQL and MongoDB may be described as
+  heterogeneous data integration when the supplied facts support that work.
+
+Faithful semantic abstraction is NOT permission to extrapolate beyond the
+evidence.
+
+It does not introduce a new tool, technique, metric, responsibility,
+outcome, qualification, or accomplishment that is absent from the supplied
+facts.
+
+For example:
+
+- Do not infer Kaldi from Whisper ASR.
+- Do not infer custom transformer training from MarianMT.
+- Do not infer Snowflake from PostgreSQL.
+- Do not infer a publication, production deployment, leadership role, scale,
+  accuracy metric, latency improvement, revenue impact, or other outcome unless
+  supplied facts support it.
+
+Use semantic abstraction to express supported work naturally and clearly, not
+to manufacture stronger qualifications or keyword matches.
 
 SELECTION BOUNDARY
 
@@ -99,6 +140,13 @@ BULLETS
 
 Each bullet should communicate one clear contribution or technical aspect.
 
+Order bullets from most job-relevant and important to least within each
+experience or project.
+
+Later bullets should contain the most expendable supporting detail so that
+downstream deterministic page fitting can remove them without weakening the
+strongest evidence.
+
 When supported, prefer:
     action + concrete work + relevant technical detail + supported result
 
@@ -152,7 +200,9 @@ SKILLS
 
 - Return only supplied approved skills.
 - Do not derive new skills from job_context.
-- Do not create synonyms merely for keyword matching.
+- Faithful semantic abstraction in resume prose does not authorize adding a
+  new item to the skills output.
+- Do not create synonyms merely for keyword matching in the skills output.
 - Do not duplicate skills.
 - Preserve meaningful technical names and capitalization.
 
@@ -161,6 +211,9 @@ PROFESSIONAL SUMMARY
 Keep the summary concise and factual, preferably 1-2 short sentences.
 
 Emphasize the strongest relevant approved technical identity.
+
+Faithful semantic abstraction is allowed in the summary when directly
+supported by approved candidate facts.
 
 Do not write a generic objective statement.
 Do not repeat the entire skills section.
@@ -216,6 +269,7 @@ Before returning, verify internally that:
 - every candidate claim is supported by approved_candidate_facts
 - neither job_context nor composition_guidance was used as candidate evidence
 - no fact, skill, technology, metric, or outcome was invented
+- any semantic abstraction is directly supported by approved candidate facts
 - all supplied experience and project IDs are present exactly once
 - all IDs and skills come from the supplied input
 - every bullet count matches composition_guidance exactly

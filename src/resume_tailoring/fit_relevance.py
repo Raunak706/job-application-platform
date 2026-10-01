@@ -1,13 +1,10 @@
 from dataclasses import dataclass
 
-from src.resume_tailoring.composition import (
-    build_evidence_relevance,
-)
-from src.resume_tailoring.contracts import (
-    TailoringInput,
-)
-from src.matching.contracts import (
-    CandidateJobMatchResult,
+from src.matching.contracts import CandidateJobMatchResult
+from src.resume_tailoring.composition import build_evidence_relevance
+from src.resume_tailoring.contracts import TailoringInput
+from src.resume_tailoring.resume_evidence_relevance import (
+    score_resume_evidence,
 )
 
 
@@ -59,7 +56,67 @@ def build_fit_relevance(
         entity_id_getter=lambda link: link.project_id,
     )
 
+    job_text = getattr(
+        tailoring_input.job,
+        "description",
+        None,
+    )
+
+    experience_relevance = _add_resume_relevance(
+        relevance=experience_relevance,
+        selected_ids=experience_ids,
+        skill_links=profile.experience_skills,
+        entity_id_getter=lambda link: link.experience_id,
+        job_text=job_text,
+    )
+
+    project_relevance = _add_resume_relevance(
+        relevance=project_relevance,
+        selected_ids=project_ids,
+        skill_links=profile.project_skills,
+        entity_id_getter=lambda link: link.project_id,
+        job_text=job_text,
+    )
+
     return FitRelevance(
         experiences=experience_relevance,
         projects=project_relevance,
     )
+
+
+def _add_resume_relevance(
+    *,
+    relevance: dict[int, int],
+    selected_ids: tuple[int, ...],
+    skill_links,
+    entity_id_getter,
+    job_text: str | None,
+) -> dict[int, int]:
+    augmented = dict(relevance)
+
+    for entity_id in selected_ids:
+        evidence_terms = []
+
+        for link in skill_links:
+            if entity_id_getter(link) != entity_id:
+                continue
+
+            evidence_terms.extend(
+                (
+                    link.skill.normalized_name,
+                    link.skill.canonical_name,
+                    link.usage_description,
+                )
+            )
+
+        semantic_score = score_resume_evidence(
+            job_text=job_text,
+            evidence_terms=evidence_terms,
+        )
+
+        augmented[entity_id] = (
+            augmented.get(entity_id, 0)
+            + semantic_score
+        )
+
+    return augmented

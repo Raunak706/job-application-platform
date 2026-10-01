@@ -107,6 +107,34 @@ def serialize_tailoring_input(
                 }
                 for achievement in tailoring_input.achievements
             ],
+            "experience_skills": [
+                {
+                    "experience_id": experience_skill.experience_id,
+                    "skill_name": experience_skill.skill.canonical_name,
+                    "normalized_name": (
+                        experience_skill.skill.normalized_name
+                    ),
+                    "category": experience_skill.skill.category,
+                    "usage_description": (
+                        experience_skill.usage_description
+                    ),
+                }
+                for experience_skill in tailoring_input.experience_skills
+            ],
+            "project_skills": [
+                {
+                    "project_id": project_skill.project_id,
+                    "skill_name": project_skill.skill.canonical_name,
+                    "normalized_name": (
+                        project_skill.skill.normalized_name
+                    ),
+                    "category": project_skill.skill.category,
+                    "usage_description": (
+                        project_skill.usage_description
+                    ),
+                }
+                for project_skill in tailoring_input.project_skills
+            ],
         },
     }
 

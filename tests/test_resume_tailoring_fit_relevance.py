@@ -251,3 +251,73 @@ def test_build_fit_relevance_rejects_job_mismatch():
         raise AssertionError(
             "Expected job mismatch to fail."
         )
+
+def test_build_fit_relevance_augments_project_score_with_semantic_relevance():
+    whisper = _skill(
+        skill_id=401,
+        name="Whisper ASR",
+    )
+    marianmt = _skill(
+        skill_id=402,
+        name="MarianMT",
+    )
+    docker = _skill(
+        skill_id=403,
+        name="Docker",
+    )
+
+    profile = SimpleNamespace(
+        experience_skills=(),
+        project_skills=(
+            CandidateProjectSkillRecord(
+                id=1,
+                project_id=201,
+                skill=whisper,
+                usage_description=None,
+            ),
+            CandidateProjectSkillRecord(
+                id=2,
+                project_id=201,
+                skill=marianmt,
+                usage_description=None,
+            ),
+            CandidateProjectSkillRecord(
+                id=3,
+                project_id=202,
+                skill=docker,
+                usage_description=None,
+            ),
+        ),
+    )
+
+    tailoring_input = SimpleNamespace(
+        candidate_id=1,
+        job=SimpleNamespace(
+            job_id=100,
+            description=(
+                "Build systems for speech translation "
+                "and multilingual language processing."
+            ),
+        ),
+        experiences=(),
+        projects=(
+            SimpleNamespace(id=201),
+            SimpleNamespace(id=202),
+        ),
+    )
+
+    match_result = SimpleNamespace(
+        candidate_id=1,
+        job_id=100,
+        matched_skills=(),
+    )
+
+    relevance = build_fit_relevance(
+        profile=profile,
+        tailoring_input=tailoring_input,
+        match_result=match_result,
+    )
+
+    assert relevance.projects[201] > relevance.projects[202]
+    assert relevance.projects[201] > 0
+    assert relevance.projects[202] == 0

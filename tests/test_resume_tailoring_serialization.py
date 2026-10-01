@@ -3,7 +3,9 @@ from datetime import date
 from src.candidate_profile.contracts import (
     CandidateAchievementRecord,
     CandidateExperienceRecord,
+    CandidateExperienceSkillRecord,
     CandidateProjectRecord,
+    CandidateProjectSkillRecord,
     CandidateSkillRecord,
     SkillRecord,
 )
@@ -24,6 +26,13 @@ from src.resume_tailoring.serialization import (
 
 
 def make_tailoring_input():
+    python_skill = SkillRecord(
+        skill_id=401,
+        canonical_name="Python",
+        normalized_name="python",
+        category="programming_language",
+    )
+
     return TailoringInput(
         candidate_id=1,
         job=TailoringJobContext(
@@ -77,12 +86,7 @@ def make_tailoring_input():
         skills=(
             CandidateSkillRecord(
                 id=301,
-                skill=SkillRecord(
-                    skill_id=401,
-                    canonical_name="Python",
-                    normalized_name="python",
-                    category="programming_language",
-                ),
+                skill=python_skill,
                 proficiency_level=None,
                 experience_months=None,
                 last_used_date=None,
@@ -101,6 +105,22 @@ def make_tailoring_input():
                 metric_text="Reduced failures by 50%.",
                 verification_status="source_document",
                 visibility="internal",
+            ),
+        ),
+        experience_skills=(
+            CandidateExperienceSkillRecord(
+                id=601,
+                experience_id=101,
+                skill=python_skill,
+                usage_description="Used Python to build data pipelines.",
+            ),
+        ),
+        project_skills=(
+            CandidateProjectSkillRecord(
+                id=602,
+                project_id=201,
+                skill=python_skill,
+                usage_description="Used Python for project implementation.",
             ),
         ),
     )
@@ -127,6 +147,32 @@ def test_serialize_tailoring_input_separates_job_and_candidate_facts():
     )
 
     assert "Spark" not in candidate_facts["skills"]
+
+
+def test_serialize_tailoring_input_includes_selected_skill_relationships():
+    result = serialize_tailoring_input(make_tailoring_input())
+
+    candidate_facts = result["approved_candidate_facts"]
+
+    assert candidate_facts["experience_skills"] == [
+        {
+            "experience_id": 101,
+            "skill_name": "Python",
+            "normalized_name": "python",
+            "category": "programming_language",
+            "usage_description": "Used Python to build data pipelines.",
+        },
+    ]
+
+    assert candidate_facts["project_skills"] == [
+        {
+            "project_id": 201,
+            "skill_name": "Python",
+            "normalized_name": "python",
+            "category": "programming_language",
+            "usage_description": "Used Python for project implementation.",
+        },
+    ]
 
 
 def test_serialize_tailoring_input_handles_missing_optional_data():
@@ -164,6 +210,8 @@ def test_serialize_tailoring_input_handles_missing_optional_data():
     assert candidate_facts["projects"] == []
     assert candidate_facts["skills"] == []
     assert candidate_facts["achievements"] == []
+    assert candidate_facts["experience_skills"] == []
+    assert candidate_facts["project_skills"] == []
 
 
 def test_serialize_generation_input_keeps_composition_guidance_separate():

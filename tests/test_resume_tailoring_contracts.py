@@ -8,6 +8,8 @@ from src.candidate_profile.contracts import (
     CandidateProjectRecord,
     CandidateSkillRecord,
     SkillRecord,
+    CandidateExperienceSkillRecord,
+    CandidateProjectSkillRecord,
 )
 from src.resume_tailoring.composition import (
     ExperienceContentAllocation,
@@ -99,6 +101,53 @@ def test_tailoring_input_stores_selected_canonical_facts():
     assert tailoring_input.experiences == (experience,)
     assert tailoring_input.projects == (project,)
     assert tailoring_input.skills == (skill,)
+
+def test_tailoring_input_stores_selected_skill_relationships():
+    skill = SkillRecord(
+        skill_id=401,
+        canonical_name="Python",
+        normalized_name="python",
+        category="programming_language",
+    )
+
+    experience_skill = CandidateExperienceSkillRecord(
+        id=501,
+        experience_id=101,
+        skill=skill,
+        usage_description="Used Python to build data pipelines.",
+    )
+
+    project_skill = CandidateProjectSkillRecord(
+        id=502,
+        project_id=201,
+        skill=skill,
+        usage_description="Used Python for project implementation.",
+    )
+
+    tailoring_input = TailoringInput(
+        candidate_id=1,
+        job=TailoringJobContext(
+            job_id=10,
+            title="Data Engineer",
+            company="Example Employer",
+            description=None,
+            location=None,
+            country=None,
+            workplace_type=None,
+            employment_type=None,
+            department=None,
+        ),
+        professional_headline=None,
+        professional_summary=None,
+        experiences=(),
+        projects=(),
+        skills=(),
+        experience_skills=(experience_skill,),
+        project_skills=(project_skill,),
+    )
+
+    assert tailoring_input.experience_skills == (experience_skill,)
+    assert tailoring_input.project_skills == (project_skill,)
 
 
 def test_tailoring_input_allows_missing_optional_data():

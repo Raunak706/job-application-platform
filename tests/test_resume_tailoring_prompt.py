@@ -4,8 +4,8 @@ from src.resume_tailoring.prompt import (
 )
 
 
-def test_prompt_version_is_v3():
-    assert PROMPT_VERSION == "v3"
+def test_prompt_version_is_v4():
+    assert PROMPT_VERSION == "v4"
 
 
 def test_prompt_defines_candidate_facts_as_only_factual_source():
@@ -55,6 +55,38 @@ def test_prompt_forbids_inventing_candidate_facts():
         in prompt
     )
     assert "achievements, metrics, outcomes" in prompt
+
+
+def test_prompt_allows_faithful_semantic_abstraction():
+    prompt = build_generation_instructions()
+
+    assert "faithful semantic abstraction" in prompt
+    assert "standard technical terminology" in prompt
+    assert "directly supported by approved candidate facts" in prompt
+
+
+def test_prompt_distinguishes_abstraction_from_extrapolation():
+    prompt = build_generation_instructions()
+
+    assert (
+        "A faithful abstraction restates or generalizes supported facts"
+        in prompt
+    )
+    assert (
+        "It does not introduce a new tool, technique, metric, "
+        "responsibility,"
+        in prompt
+    )
+    assert "outcome, qualification, or accomplishment" in prompt
+
+
+def test_prompt_allows_supported_relationship_wording():
+    prompt = build_generation_instructions()
+
+    assert "Whisper ASR" in prompt
+    assert "speech recognition" in prompt
+    assert "MarianMT" in prompt
+    assert "machine translation" in prompt
 
 
 def test_prompt_forbids_fabricated_metrics():
@@ -264,3 +296,15 @@ def test_prompt_defines_final_priority_rules():
         "When impressive wording conflicts with precise wording, "
         "choose precise wording"
     ) in prompt
+
+def test_prompt_requires_bullets_in_descending_resume_value_order():
+    prompt = build_generation_instructions()
+
+    assert (
+        "Order bullets from most job-relevant and important to least"
+        in prompt
+    )
+    assert (
+        "Later bullets should contain the most expendable supporting detail"
+        in prompt
+    )

@@ -14,8 +14,10 @@ from src.resume_tailoring.contracts import (
     TailoringJobContext,
 )
 from src.resume_tailoring.fit_pipeline import (
+    create_content_measurement_callback,
     create_plan_measurement_callback,
 )
+
 from src.resume_tailoring.pdf_measurement import (
     LatexCompilationResult,
 )
@@ -354,3 +356,84 @@ def test_compilation_result_is_converted_to_page_fit_result(
     assert result.content_height_points == 25.0
     assert result.usable_height_points == 722.7
     assert result.fits_one_page is False
+
+def test_content_measurement_callback_measures_existing_content_without_generation(
+    tmp_path,
+):
+    profile = object()
+
+    content = StructuredResumeContent(
+        professional_summary=None,
+        experiences=(
+            GeneratedExperienceContent(
+                experience_id=101,
+                bullets=(
+                    "Experience bullet 1",
+                    "Experience bullet 2",
+                    "Experience bullet 3",
+                ),
+            ),
+        ),
+        projects=(
+            GeneratedProjectContent(
+                project_id=201,
+                bullets=(
+                    "Project bullet 1",
+                    "Project bullet 2",
+                ),
+            ),
+        ),
+        skills=("Python",),
+    )
+
+    rendered_contents = []
+
+    def render_resume_fn(candidate_profile, supplied_content):
+        assert candidate_profile is profile
+        rendered_contents.append(supplied_content)
+        return "rendered latex"
+
+    compile_calls = []
+
+    def compile_latex_fn(
+        *,
+        latex_source,
+        work_directory,
+    ):
+        compile_calls.append(
+            (
+                latex_source,
+                work_directory,
+            )
+        )
+
+        return LatexCompilationResult(
+            page_count=1,
+            pdf_path=work_directory / "resume.pdf",
+            compiler_output=(
+                "RESUME_CONTENT_HEIGHT_POINTS=650.0\n"
+                "RESUME_USABLE_HEIGHT_POINTS=720.0\n"
+            ),
+        )
+
+    measure_content = create_content_measurement_callback(
+        profile=profile,
+        work_directory=tmp_path,
+        render_resume_fn=render_resume_fn,
+        compile_latex_fn=compile_latex_fn,
+    )
+
+    result = measure_content(content)
+
+    assert rendered_contents == [content]
+
+    assert compile_calls == [
+        (
+            "rendered latex",
+            tmp_path / "attempt_1",
+        )
+    ]
+
+    assert result.page_count == 1
+    assert result.content_height_points == 650.0
+    assert result.usable_height_points == 720.0

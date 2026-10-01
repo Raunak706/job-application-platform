@@ -6,6 +6,7 @@ from src.candidate_profile.contracts import (
 from src.resume_tailoring.composition import (
     build_composition_plan,
     build_evidence_relevance,
+    build_rich_composition_plan,
 )
 
 
@@ -605,3 +606,43 @@ def test_build_composition_plan_from_profile_uses_selected_evidence_and_match():
         201: 4,
         202: 2,
     }
+
+def test_rich_composition_plan_requests_maximum_detail_for_selected_evidence():
+    from types import SimpleNamespace
+
+    tailoring_input = SimpleNamespace(
+        experiences=(
+            SimpleNamespace(id=101),
+            SimpleNamespace(id=102),
+        ),
+        projects=(
+            SimpleNamespace(id=201),
+            SimpleNamespace(id=202),
+        ),
+    )
+
+    plan = build_rich_composition_plan(
+        tailoring_input
+    )
+
+    assert tuple(
+        (
+            allocation.experience_id,
+            allocation.target_bullets,
+        )
+        for allocation in plan.experiences
+    ) == (
+        (101, 4),
+        (102, 4),
+    )
+
+    assert tuple(
+        (
+            allocation.project_id,
+            allocation.target_bullets,
+        )
+        for allocation in plan.projects
+    ) == (
+        (201, 4),
+        (202, 4),
+    )

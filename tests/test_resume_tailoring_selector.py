@@ -5,6 +5,7 @@ import pytest
 from src.candidate_profile.contracts import (
     CandidateAchievementRecord,
     CandidateExperienceRecord,
+    CandidateExperienceSkillRecord,
     CandidateIdentity,
     CandidateProfileDetails,
     CandidateProjectRecord,
@@ -24,6 +25,7 @@ def make_profile(
     experiences=(),
     projects=(),
     skills=(),
+    experience_skills=(),
     project_skills=(),
 ):
     return CanonicalCandidateProfile(
@@ -45,7 +47,7 @@ def make_profile(
         projects=projects,
         project_links=(),
         skills=skills,
-        experience_skills=(),
+        experience_skills=experience_skills,
         project_skills=project_skills,
         education=(),
         courses=(),
@@ -213,6 +215,115 @@ def test_build_tailoring_input_selects_supported_approved_facts():
     assert result.experiences == (experience,)
     assert result.projects == (project,)
     assert result.skills == (skill,)
+
+
+def test_build_tailoring_input_keeps_skill_links_for_selected_evidence_only():
+    python = SkillRecord(
+        skill_id=401,
+        canonical_name="Python",
+        normalized_name="python",
+        category="programming_language",
+    )
+
+    sql = SkillRecord(
+        skill_id=402,
+        canonical_name="SQL",
+        normalized_name="sql",
+        category="query_language",
+    )
+
+    selected_experience = CandidateExperienceRecord(
+        id=101,
+        company="Example Company",
+        title="Data Engineer",
+        employment_type=None,
+        department=None,
+        location=None,
+        country=None,
+        start_date=None,
+        end_date=None,
+        is_current=False,
+        description="Built data pipelines.",
+        verification_status="verified",
+        visibility="internal",
+    )
+
+    unselected_experience = CandidateExperienceRecord(
+        id=102,
+        company="Other Company",
+        title="Other Role",
+        employment_type=None,
+        department=None,
+        location=None,
+        country=None,
+        start_date=None,
+        end_date=None,
+        is_current=False,
+        description="Other work.",
+        verification_status="verified",
+        visibility="internal",
+    )
+
+    selected_project = make_project(201, "Selected Project")
+    unselected_project = make_project(202, "Unselected Project")
+
+    selected_experience_skill = CandidateExperienceSkillRecord(
+        id=501,
+        experience_id=101,
+        skill=python,
+        usage_description="Used Python to build data pipelines.",
+    )
+
+    unselected_experience_skill = CandidateExperienceSkillRecord(
+        id=502,
+        experience_id=102,
+        skill=sql,
+        usage_description="Used SQL in other work.",
+    )
+
+    selected_project_skill = CandidateProjectSkillRecord(
+        id=503,
+        project_id=201,
+        skill=python,
+        usage_description="Used Python for project implementation.",
+    )
+
+    unselected_project_skill = CandidateProjectSkillRecord(
+        id=504,
+        project_id=202,
+        skill=sql,
+        usage_description="Used SQL in another project.",
+    )
+
+    result = build_tailoring_input(
+        make_profile(
+            experiences=(
+                selected_experience,
+                unselected_experience,
+            ),
+            projects=(
+                selected_project,
+                unselected_project,
+            ),
+            experience_skills=(
+                selected_experience_skill,
+                unselected_experience_skill,
+            ),
+            project_skills=(
+                selected_project_skill,
+                unselected_project_skill,
+            ),
+        ),
+        make_job(),
+        make_match(
+            matched_skills=("python",),
+            supporting_experience_ids=(101,),
+            supporting_project_ids=(201,),
+        ),
+    )
+
+    assert result.experience_skills == (selected_experience_skill,)
+    assert result.project_skills == (selected_project_skill,)
 
 
 def test_build_tailoring_input_excludes_unverified_facts():
