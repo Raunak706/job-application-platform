@@ -816,3 +816,75 @@ def test_fallback_recognizes_postgres_mongodb_as_heterogeneous_data_integration(
     )
 
     assert result.projects == (federated_project,)
+
+def test_fallback_prioritizes_second_professional_experience_before_project():
+    selected_experience = make_experience(
+        101,
+        "Data Engineer",
+    )
+
+    fallback_experience = make_experience(
+        102,
+        "Machine Learning Engineer",
+    )
+
+    fallback_project = make_project(
+        201,
+        "Data Platform Project",
+    )
+
+    selected_experience_skill = make_experience_skill(
+        1,
+        101,
+        401,
+        "Python",
+        "python",
+    )
+
+    fallback_experience_skill = make_experience_skill(
+        2,
+        102,
+        402,
+        "SQL",
+        "sql",
+    )
+
+    fallback_project_skill = make_project_skill(
+        3,
+        201,
+        402,
+        "SQL",
+        "sql",
+    )
+
+    profile = make_profile(
+        experiences=(
+            selected_experience,
+            fallback_experience,
+        ),
+        projects=(fallback_project,),
+        experience_skills=(
+            selected_experience_skill,
+            fallback_experience_skill,
+        ),
+        project_skills=(fallback_project_skill,),
+    )
+
+    result = add_next_fallback_evidence(
+        profile=profile,
+        tailoring_input=make_tailoring_input(
+            experiences=(selected_experience,),
+            experience_skills=(selected_experience_skill,),
+        ),
+        match_result=make_match(),
+    )
+
+    assert result.experiences == (
+        selected_experience,
+        fallback_experience,
+    )
+    assert result.experience_skills == (
+        selected_experience_skill,
+        fallback_experience_skill,
+    )
+    assert result.projects == ()

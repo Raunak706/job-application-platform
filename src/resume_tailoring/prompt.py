@@ -210,10 +210,17 @@ PROFESSIONAL SUMMARY
 
 Keep the summary concise and factual, preferably 1-2 short sentences.
 
+Tailor the summary specifically to the target role described in job_context.
+
+Use job_context to decide which approved candidate facts to emphasize, but use
+only approved_candidate_facts as evidence about the candidate.
+
 Emphasize the strongest relevant approved technical identity.
 
 Faithful semantic abstraction is allowed in the summary when directly
 supported by approved candidate facts.
+
+Do not copy job requirements into the summary as candidate claims.
 
 Do not write a generic objective statement.
 Do not repeat the entire skills section.

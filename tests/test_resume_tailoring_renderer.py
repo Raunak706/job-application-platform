@@ -355,6 +355,9 @@ def test_render_resume_uses_original_resume_style_layout():
         r"\hfill Master of Science in Data Science"
         in rendered
     )
+
+    assert r"\hfill Sep 2024 -- May 2026" in rendered
+
     assert (
         r"\textbf{Example Institute of Technology}, Pune, India"
         in rendered
@@ -363,6 +366,9 @@ def test_render_resume_uses_original_resume_style_layout():
         r"\hfill Bachelor of Technology in Computer Science"
         in rendered
     )
+
+    assert r"\hfill Aug 2020 -- May 2024" in rendered
+
     assert r"\textbf{Relevant Coursework:}" in rendered
     assert "DS501: Machine Learning" in rendered
     assert "DS510: Natural Language Processing" in rendered
@@ -372,7 +378,7 @@ def test_render_resume_uses_original_resume_style_layout():
     assert r"\section{Professional Summary}" not in rendered
     assert (
         "Data engineer focused on reliable data processing systems."
-        not in rendered
+        in rendered
     )
 
     assert r"\section{Professional Experience}" in rendered
@@ -440,3 +446,70 @@ def test_render_resume_omits_empty_optional_sections():
     assert "{{EXPERIENCE}}" not in rendered
     assert "{{PROJECTS}}" not in rendered
     assert "{{SKILLS}}" not in rendered
+
+def test_render_resume_normalizes_markdown_email_contact():
+    profile = make_profile(
+        contacts=(
+            CandidateContactRecord(
+                id=1,
+                contact_type="email",
+                contact_value=(
+                    "[candidate@example.com]"
+                    "(mailto:candidate@example.com)"
+                ),
+                label="Personal",
+                is_primary=True,
+            ),
+        ),
+    )
+
+    content = StructuredResumeContent(
+        professional_summary=None,
+        experiences=(),
+        projects=(),
+        skills=(),
+    )
+
+    rendered = render_resume(profile, content)
+
+    assert (
+        r"\href{mailto:candidate@example.com}"
+        r"{candidate@example.com}"
+        in rendered
+    )
+
+    assert "[candidate@example.com]" not in rendered
+    assert "(mailto:candidate@example.com)" not in rendered
+
+def test_render_education_uses_preserved_month_year_description():
+    profile = make_profile(
+        education=(
+            CandidateEducationRecord(
+                id=301,
+                institution="Example University",
+                degree="Master of Science",
+                field_of_study="Data Science",
+                education_level="masters",
+                location=None,
+                country=None,
+                start_date=None,
+                end_date=None,
+                graduation_date=None,
+                gpa=None,
+                description="Sep 2024 – May 2026.",
+                verification_status="verified",
+                visibility="internal",
+            ),
+        ),
+    )
+
+    content = StructuredResumeContent(
+        professional_summary=None,
+        experiences=(),
+        projects=(),
+        skills=(),
+    )
+
+    rendered = render_resume(profile, content)
+
+    assert r"\hfill Sep 2024 -- May 2026" in rendered

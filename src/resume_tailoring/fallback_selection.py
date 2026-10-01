@@ -11,7 +11,6 @@ from src.resume_tailoring.selector import (
     APPROVED_VERIFICATION_STATUSES,
 )
 
-
 def add_next_fallback_evidence(
     *,
     profile: CanonicalCandidateProfile,
@@ -28,6 +27,38 @@ def add_next_fallback_evidence(
         skill.casefold()
         for skill in match_result.matched_skills
     }
+
+    selected_experience_ids = {
+        experience.id
+        for experience in tailoring_input.experiences
+    }
+
+    if len(tailoring_input.experiences) < 2:
+        experience = _select_next_experience(
+            profile=profile,
+            selected_experience_ids=selected_experience_ids,
+            matched_skills=matched_skills,
+            job_text=tailoring_input.job.description,
+        )
+
+        if experience is not None:
+            added_experience_skills = tuple(
+                experience_skill
+                for experience_skill in profile.experience_skills
+                if experience_skill.experience_id == experience.id
+            )
+
+            return replace(
+                tailoring_input,
+                experiences=(
+                    tailoring_input.experiences
+                    + (experience,)
+                ),
+                experience_skills=(
+                    tailoring_input.experience_skills
+                    + added_experience_skills
+                ),
+            )
 
     selected_project_ids = {
         project.id
@@ -56,11 +87,6 @@ def add_next_fallback_evidence(
                 + added_project_skills
             ),
         )
-
-    selected_experience_ids = {
-        experience.id
-        for experience in tailoring_input.experiences
-    }
 
     experience = _select_next_experience(
         profile=profile,

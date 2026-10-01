@@ -308,3 +308,21 @@ def test_prompt_requires_bullets_in_descending_resume_value_order():
         "Later bullets should contain the most expendable supporting detail"
         in prompt
     )
+
+def test_prompt_requires_job_specific_professional_summary():
+    prompt = build_generation_instructions()
+
+    assert (
+        "Tailor the summary specifically to the target role described "
+        "in job_context"
+        in prompt
+    )
+    assert (
+        "Use job_context to decide which approved candidate facts "
+        "to emphasize"
+        in prompt
+    )
+    assert (
+        "Do not copy job requirements into the summary as candidate claims"
+        in prompt
+    )

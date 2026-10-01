@@ -1,6 +1,8 @@
 from datetime import date
 from pathlib import Path
 
+import re
+
 from src.candidate_profile.contracts import CanonicalCandidateProfile
 from src.resume_tailoring.contracts import StructuredResumeContent
 
@@ -80,6 +82,21 @@ def load_resume_template() -> str:
     return _TEMPLATE_PATH.read_text(encoding="utf-8")
 
 
+def _normalize_email_contact(value: str) -> str:
+    stripped = value.strip()
+
+    markdown_match = re.fullmatch(
+        r"\[([^\]]+)\]\(mailto:([^)]+)\)",
+        stripped,
+        flags=re.IGNORECASE,
+    )
+
+    if markdown_match is not None:
+        return markdown_match.group(2).strip()
+
+    return stripped
+
+
 def render_header(profile: CanonicalCandidateProfile) -> str:
     lines = [
         r"\begin{center}",
@@ -108,14 +125,19 @@ def render_header(profile: CanonicalCandidateProfile) -> str:
     )
 
     for contact in contacts:
-        value = escape_latex(contact.contact_value)
-
         if contact.contact_type.casefold() == "email":
+            email = _normalize_email_contact(
+                contact.contact_value
+            )
+            value = escape_latex(email)
+
             contact_items.append(
                 rf"\href{{mailto:{value}}}{{{value}}}"
             )
         else:
-            contact_items.append(value)
+            contact_items.append(
+                escape_latex(contact.contact_value)
+            )
 
     links = sorted(
         profile.links,
@@ -146,6 +168,32 @@ def render_header(profile: CanonicalCandidateProfile) -> str:
 
     return "\n".join(lines)
 
+def _format_education_date_range(education) -> str:
+    date_text = _format_date_range(
+        education.start_date,
+        education.end_date or education.graduation_date,
+        False,
+    )
+
+    if date_text:
+        return date_text
+
+    description = (education.description or "").strip()
+
+    match = re.fullmatch(
+        (
+            r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)"
+            r"\s+\d{4}\s*[–—-]\s*"
+            r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)"
+            r"\s+\d{4}\.?"
+        ),
+        description,
+    )
+
+    if not match:
+        return ""
+
+    return re.sub(r"\s*[–—-]\s*", " -- ", description.rstrip("."))
 
 def render_education(profile: CanonicalCandidateProfile) -> str:
     if not profile.education:
@@ -184,6 +232,15 @@ def render_education(profile: CanonicalCandidateProfile) -> str:
 
         lines.append(heading + r"\\")
 
+        date_text = _format_education_date_range(education)
+
+        if date_text:
+            lines.append(
+                r"\hfill "
+                + escape_latex(date_text)
+                + r"\\"
+            )
+
     courses = list(profile.courses)
 
     if courses:
@@ -204,8 +261,18 @@ def render_education(profile: CanonicalCandidateProfile) -> str:
 def render_professional_summary(
     content: StructuredResumeContent,
 ) -> str:
-    return ""
+    summary = content.professional_summary
 
+    if not summary or not summary.strip():
+        return ""
+
+    return "\n".join(
+        (
+            r"\vspace{-0.1em}",
+            escape_latex(summary.strip()),
+            r"\vspace{0.3em}",
+        )
+    )
 
 def render_experience(
     profile: CanonicalCandidateProfile,

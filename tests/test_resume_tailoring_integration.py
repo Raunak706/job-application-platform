@@ -1,4 +1,5 @@
 import pytest
+
 from sqlalchemy.orm import sessionmaker
 
 from src.candidate_profile.management import CandidateManagementService
@@ -305,7 +306,7 @@ def test_resume_tailoring_real_service_path(session_factory):
     assert r"\section{Professional Summary}" not in rendered_resume
     assert (
         generated_content.professional_summary
-        not in rendered_resume
+        in rendered_resume
     )
 
     assert r"\section{Professional Experience}" in rendered_resume
