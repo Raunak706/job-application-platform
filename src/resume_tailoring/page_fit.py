@@ -7,7 +7,7 @@ from src.resume_tailoring.pdf_measurement import (
 )
 
 
-TARGET_MIN_FILL_RATIO = 0.90
+TARGET_MIN_FILL_RATIO = 0.97
 
 
 @dataclass(frozen=True, slots=True)

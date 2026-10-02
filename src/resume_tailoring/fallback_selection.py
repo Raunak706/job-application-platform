@@ -11,6 +11,7 @@ from src.resume_tailoring.selector import (
     APPROVED_VERIFICATION_STATUSES,
 )
 
+
 def add_next_fallback_evidence(
     *,
     profile: CanonicalCandidateProfile,
@@ -48,7 +49,7 @@ def add_next_fallback_evidence(
                 if experience_skill.experience_id == experience.id
             )
 
-            return replace(
+            updated_input = replace(
                 tailoring_input,
                 experiences=(
                     tailoring_input.experiences
@@ -58,6 +59,11 @@ def add_next_fallback_evidence(
                     tailoring_input.experience_skills
                     + added_experience_skills
                 ),
+            )
+
+            return _expand_selected_skills(
+                profile,
+                updated_input,
             )
 
     selected_project_ids = {
@@ -79,13 +85,18 @@ def add_next_fallback_evidence(
             if project_skill.project_id == project.id
         )
 
-        return replace(
+        updated_input = replace(
             tailoring_input,
             projects=tailoring_input.projects + (project,),
             project_skills=(
                 tailoring_input.project_skills
                 + added_project_skills
             ),
+        )
+
+        return _expand_selected_skills(
+            profile,
+            updated_input,
         )
 
     experience = _select_next_experience(
@@ -102,7 +113,7 @@ def add_next_fallback_evidence(
             if experience_skill.experience_id == experience.id
         )
 
-        return replace(
+        updated_input = replace(
             tailoring_input,
             experiences=(
                 tailoring_input.experiences
@@ -114,7 +125,82 @@ def add_next_fallback_evidence(
             ),
         )
 
-    return tailoring_input
+        return _expand_selected_skills(
+            profile,
+            updated_input,
+        )
+
+    return _expand_selected_skills(
+        profile,
+        tailoring_input,
+    )
+
+
+def _expand_selected_skills(
+    profile: CanonicalCandidateProfile,
+    tailoring_input: TailoringInput,
+) -> TailoringInput:
+    selected_experience_ids = {
+        experience.id
+        for experience in tailoring_input.experiences
+    }
+
+    selected_project_ids = {
+        project.id
+        for project in tailoring_input.projects
+    }
+
+    supported_skill_names = {
+        experience_skill.skill.normalized_name.casefold()
+        for experience_skill in profile.experience_skills
+        if experience_skill.experience_id
+        in selected_experience_ids
+    }
+
+    supported_skill_names.update(
+        project_skill.skill.normalized_name.casefold()
+        for project_skill in profile.project_skills
+        if project_skill.project_id
+        in selected_project_ids
+    )
+
+    if not supported_skill_names:
+        return tailoring_input
+
+    selected_skill_names = {
+        candidate_skill.skill.normalized_name.casefold()
+        for candidate_skill in tailoring_input.skills
+    }
+
+    expanded_skills = list(tailoring_input.skills)
+
+    for candidate_skill in profile.skills:
+        normalized_name = (
+            candidate_skill.skill.normalized_name.casefold()
+        )
+
+        if normalized_name not in supported_skill_names:
+            continue
+
+        if normalized_name in selected_skill_names:
+            continue
+
+        if not _is_allowed_fact(
+            candidate_skill.verification_status,
+            candidate_skill.visibility,
+        ):
+            continue
+
+        expanded_skills.append(candidate_skill)
+        selected_skill_names.add(normalized_name)
+
+    if tuple(expanded_skills) == tailoring_input.skills:
+        return tailoring_input
+
+    return replace(
+        tailoring_input,
+        skills=tuple(expanded_skills),
+    )
 
 
 def _select_next_project(
@@ -262,7 +348,8 @@ def _build_skill_relevance(
 
     return {
         entity_id: len(skill_names)
-        for entity_id, skill_names in matched_evidence.items()
+        for entity_id, skill_names
+        in matched_evidence.items()
     }
 
 
@@ -313,8 +400,10 @@ def _is_allowed_fact(
     visibility: str,
 ) -> bool:
     return (
-        verification_status in APPROVED_VERIFICATION_STATUSES
-        and visibility in ALLOWED_RESUME_VISIBILITIES
+        verification_status
+        in APPROVED_VERIFICATION_STATUSES
+        and visibility
+        in ALLOWED_RESUME_VISIBILITIES
     )
 
 
@@ -328,15 +417,18 @@ def _validate_inputs(
 
     if tailoring_input.candidate_id != candidate_id:
         raise ValueError(
-            "Tailoring input candidate does not match candidate profile."
+            "Tailoring input candidate does not match "
+            "candidate profile."
         )
 
     if match_result.candidate_id != candidate_id:
         raise ValueError(
-            "Match result candidate does not match candidate profile."
+            "Match result candidate does not match "
+            "candidate profile."
         )
 
     if match_result.job_id != tailoring_input.job.job_id:
         raise ValueError(
-            "Match result job does not match tailoring input."
+            "Match result job does not match "
+            "tailoring input."
         )

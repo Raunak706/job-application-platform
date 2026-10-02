@@ -100,7 +100,7 @@ def test_realistic_underfilled_measurement_is_classified():
 def test_realistic_target_measurement_is_classified():
     result = build_page_fit_result(
         page_count=1,
-        content_height_points=684.0,
+        content_height_points=705.0,
         usable_height_points=720.0,
     )
 
@@ -162,7 +162,7 @@ def test_compilation_measurement_classifies_target_resume():
         page_count=1,
         pdf_path=Path("/tmp/resume.pdf"),
         compiler_output=(
-            "RESUME_CONTENT_HEIGHT_POINTS= 684.0\n"
+            "RESUME_CONTENT_HEIGHT_POINTS= 705.0\n"
             "RESUME_USABLE_HEIGHT_POINTS= 720.0\n"
         ),
     )

@@ -36,7 +36,7 @@ def _plan(
 def _fit(
     *,
     page_count=1,
-    content_height=684.0,
+    content_height=705.0,
     usable_height=720.0,
 ):
     return PageFitResult(
@@ -57,7 +57,7 @@ def test_target_plan_is_returned_without_adjustment():
     def measure_plan(candidate_plan):
         measured_plans.append(candidate_plan)
         return _fit(
-            content_height=684.0,
+            content_height=705.0,
         )
 
     result = fit_composition_plan(
@@ -107,7 +107,7 @@ def test_overfull_plan_is_reduced_until_target():
 
         return _fit(
             page_count=1,
-            content_height=690.0,
+            content_height=705.0,
         )
 
     result = fit_composition_plan(
@@ -158,7 +158,7 @@ def test_underfilled_plan_is_expanded_until_target():
             )
 
         return _fit(
-            content_height=690.0,
+            content_height=705.0,
         )
 
     result = fit_composition_plan(
@@ -199,7 +199,7 @@ def test_each_attempt_measures_the_new_adjusted_plan():
             )
 
         return _fit(
-            content_height=690.0,
+            content_height=705.0,
         )
 
     result = fit_composition_plan(
@@ -362,7 +362,7 @@ def test_result_preserves_final_measurement():
     )
 
     measurement = _fit(
-        content_height=700.0,
+        content_height=705.0,
         usable_height=722.7,
     )
 

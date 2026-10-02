@@ -344,15 +344,17 @@ def test_render_resume_uses_original_resume_style_layout():
         r"{candidate@example.com}"
         in rendered
     )
-    assert r"\href{https://github.com/example}{GitHub}" in rendered
-
+    assert (
+        r"\href{https://github.com/example}{github.com/example}"
+        in rendered
+    )
     assert r"\section{Education}" in rendered
     assert (
         r"\textbf{Example University}, New York, NY"
         in rendered
     )
     assert (
-        r"\hfill Master of Science in Data Science"
+        r"Master of Science in Data Science"
         in rendered
     )
 
@@ -363,7 +365,7 @@ def test_render_resume_uses_original_resume_style_layout():
         in rendered
     )
     assert (
-        r"\hfill Bachelor of Technology in Computer Science"
+        r"Bachelor of Technology in Computer Science"
         in rendered
     )
 
@@ -513,3 +515,220 @@ def test_render_education_uses_preserved_month_year_description():
     rendered = render_resume(profile, content)
 
     assert r"\hfill Sep 2024 -- May 2026" in rendered
+
+def test_render_experiences_orders_newest_first_from_preserved_dates():
+    older_experience = CandidateExperienceRecord(
+        id=101,
+        company="Older Company",
+        title="Engineer",
+        employment_type=None,
+        department=None,
+        location=None,
+        country=None,
+        start_date=None,
+        end_date=None,
+        is_current=False,
+        description=(
+            "Sep 2023 – Aug 2024. "
+            "Built older systems."
+        ),
+        verification_status="verified",
+        visibility="internal",
+    )
+
+    newer_experience = CandidateExperienceRecord(
+        id=102,
+        company="Newer Company",
+        title="Engineer",
+        employment_type=None,
+        department=None,
+        location=None,
+        country=None,
+        start_date=None,
+        end_date=None,
+        is_current=False,
+        description=(
+            "May 2025 – Aug 2025. "
+            "Built newer systems."
+        ),
+        verification_status="verified",
+        visibility="internal",
+    )
+
+    profile = make_profile(
+        experiences=(
+            older_experience,
+            newer_experience,
+        ),
+    )
+
+    content = StructuredResumeContent(
+        professional_summary=None,
+        experiences=(
+            GeneratedExperienceContent(
+                experience_id=101,
+                bullets=("Older bullet.",),
+            ),
+            GeneratedExperienceContent(
+                experience_id=102,
+                bullets=("Newer bullet.",),
+            ),
+        ),
+        projects=(),
+        skills=(),
+    )
+
+    rendered = render_resume(profile, content)
+
+    assert rendered.index("Newer Company") < rendered.index(
+        "Older Company"
+    )
+    assert r"\hfill May 2025 -- Aug 2025" in rendered
+    assert r"\hfill Sep 2023 -- Aug 2024" in rendered
+
+
+def test_render_projects_orders_newest_first_from_preserved_dates():
+    older_project = CandidateProjectRecord(
+        id=201,
+        name="Older Project",
+        role=None,
+        organization=None,
+        description="2023 project. Built older system.",
+        problem=None,
+        solution=None,
+        architecture=None,
+        outcome=None,
+        start_date=None,
+        end_date=None,
+        status="completed",
+        verification_status="verified",
+        visibility="internal",
+    )
+
+    newer_project = CandidateProjectRecord(
+        id=202,
+        name="Newer Project",
+        role=None,
+        organization=None,
+        description="2025 project. Built newer system.",
+        problem=None,
+        solution=None,
+        architecture=None,
+        outcome=None,
+        start_date=None,
+        end_date=None,
+        status="completed",
+        verification_status="verified",
+        visibility="internal",
+    )
+
+    active_project = CandidateProjectRecord(
+        id=203,
+        name="Active Project",
+        role=None,
+        organization=None,
+        description="Built active system.",
+        problem=None,
+        solution=None,
+        architecture=None,
+        outcome=None,
+        start_date=None,
+        end_date=None,
+        status="active",
+        verification_status="verified",
+        visibility="internal",
+    )
+
+    profile = make_profile(
+        projects=(
+            older_project,
+            newer_project,
+            active_project,
+        ),
+    )
+
+    content = StructuredResumeContent(
+        professional_summary=None,
+        experiences=(),
+        projects=(
+            GeneratedProjectContent(
+                project_id=201,
+                bullets=("Older bullet.",),
+            ),
+            GeneratedProjectContent(
+                project_id=202,
+                bullets=("Newer bullet.",),
+            ),
+            GeneratedProjectContent(
+                project_id=203,
+                bullets=("Active bullet.",),
+            ),
+        ),
+        skills=(),
+    )
+
+    rendered = render_resume(profile, content)
+
+    assert rendered.index("Active Project") < rendered.index(
+        "Newer Project"
+    )
+    assert rendered.index("Newer Project") < rendered.index(
+        "Older Project"
+    )
+
+    assert r"\hfill Present" in rendered
+    assert r"\hfill 2025" in rendered
+    assert r"\hfill 2023" in rendered
+
+
+def test_render_header_skips_blank_links():
+    profile = make_profile(
+        links=(
+            CandidateLinkRecord(
+                id=1,
+                link_type="linkedin",
+                url="",
+                label="LinkedIn",
+                is_primary=True,
+            ),
+        ),
+    )
+
+    content = StructuredResumeContent(
+        professional_summary=None,
+        experiences=(),
+        projects=(),
+        skills=(),
+    )
+
+    rendered = render_resume(profile, content)
+
+    assert "LinkedIn" not in rendered
+
+def test_render_header_displays_link_url_and_keeps_it_clickable():
+    profile = make_profile(
+        links=(
+            CandidateLinkRecord(
+                id=1,
+                link_type="linkedin",
+                url="https://linkedin.com/in/raunaknair706",
+                label="LinkedIn",
+                is_primary=True,
+            ),
+        ),
+    )
+
+    content = StructuredResumeContent(
+        professional_summary=None,
+        experiences=(),
+        projects=(),
+        skills=(),
+    )
+
+    rendered = render_resume(profile, content)
+
+    assert (
+        r"\href{https://linkedin.com/in/raunaknair706}"
+        r"{linkedin.com/in/raunaknair706}"
+        in rendered
+    )

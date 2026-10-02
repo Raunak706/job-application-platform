@@ -115,7 +115,7 @@ def _generated_content(generation_input):
 def _measurement(
     *,
     page_count=1,
-    content_height=650.0,
+    content_height=700.0,
 ):
     return PageFitResult(
         page_count=page_count,

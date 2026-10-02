@@ -38,7 +38,7 @@ def _content(
 def _measurement(
     *,
     page_count=1,
-    content_height=650.0,
+    content_height=705.0,
     usable_height=720.0,
 ):
     return PageFitResult(
@@ -60,7 +60,7 @@ def test_target_content_is_returned_unchanged():
         experience_relevance={101: 5},
         project_relevance={},
         measure_content=lambda supplied_content: _measurement(
-            content_height=650.0,
+            content_height=705.0,
         ),
     )
 
@@ -90,7 +90,7 @@ def test_overfull_content_is_trimmed_and_remeasured():
 
         return _measurement(
             page_count=1,
-            content_height=650.0,
+            content_height=705.0,
         )
 
     result = fit_generated_content(
@@ -140,7 +140,7 @@ def test_each_overfull_attempt_trims_only_existing_content():
 
         return _measurement(
             page_count=1,
-            content_height=650.0,
+            content_height=705.0,
         )
 
     result = fit_generated_content(

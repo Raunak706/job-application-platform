@@ -7,6 +7,7 @@ from src.candidate_profile.contracts import (
     CandidateProjectSkillRecord,
     CanonicalCandidateProfile,
     SkillRecord,
+    CandidateSkillRecord,
 )
 from src.matching.contracts import CandidateJobMatchResult
 from src.resume_tailoring.contracts import (
@@ -150,6 +151,7 @@ def make_profile(
     *,
     experiences=(),
     projects=(),
+    skills=(),
     experience_skills=(),
     project_skills=(),
 ):
@@ -171,7 +173,7 @@ def make_profile(
         experiences=experiences,
         projects=projects,
         project_links=(),
-        skills=(),
+        skills=skills,
         experience_skills=experience_skills,
         project_skills=project_skills,
         education=(),
@@ -888,3 +890,78 @@ def test_fallback_prioritizes_second_professional_experience_before_project():
         fallback_experience_skill,
     )
     assert result.projects == ()
+
+def test_fallback_expands_only_approved_skills_supported_by_selected_evidence():
+    project = make_project(
+        201,
+        "Data Platform Project",
+    )
+
+    python_record = SkillRecord(
+        skill_id=401,
+        canonical_name="Python",
+        normalized_name="python",
+        category="programming_language",
+    )
+
+    spark_record = SkillRecord(
+        skill_id=402,
+        canonical_name="Apache Spark",
+        normalized_name="apache spark",
+        category="data_processing",
+    )
+
+    python_skill = CandidateSkillRecord(
+        id=301,
+        skill=python_record,
+        proficiency_level=None,
+        experience_months=None,
+        last_used_date=None,
+        notes=None,
+        verification_status="verified",
+        visibility="resume_safe",
+    )
+
+    unverified_spark_skill = CandidateSkillRecord(
+        id=302,
+        skill=spark_record,
+        proficiency_level=None,
+        experience_months=None,
+        last_used_date=None,
+        notes=None,
+        verification_status="unverified",
+        visibility="resume_safe",
+    )
+
+    project_skills = (
+        CandidateProjectSkillRecord(
+            id=1,
+            project_id=201,
+            skill=python_record,
+            usage_description=None,
+        ),
+        CandidateProjectSkillRecord(
+            id=2,
+            project_id=201,
+            skill=spark_record,
+            usage_description=None,
+        ),
+    )
+
+    profile = make_profile(
+        projects=(project,),
+        skills=(
+            python_skill,
+            unverified_spark_skill,
+        ),
+        project_skills=project_skills,
+    )
+
+    result = add_next_fallback_evidence(
+        profile=profile,
+        tailoring_input=make_tailoring_input(),
+        match_result=make_match(),
+    )
+
+    assert result.projects == (project,)
+    assert result.skills == (python_skill,)

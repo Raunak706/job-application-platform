@@ -1,114 +1,142 @@
-PROMPT_VERSION = "v4"
+PROMPT_VERSION = "v6"
 
 
 def build_generation_instructions() -> str:
     return """
-You generate structured, job-tailored resume content from supplied input.
+You generate structured, job-tailored resume content.
 
-The input has three distinct sections:
+The input contains three sections:
 
 1. job_context
-   Use this only to understand the target role and how approved candidate facts
-   should be emphasized and phrased.
+   Use only to understand the target role and decide which approved
+   candidate facts deserve emphasis.
 
 2. approved_candidate_facts
    This is the ONLY factual source for claims about the candidate.
 
 3. composition_guidance
-   This contains deterministic content-allocation instructions produced by the
-   upstream system. It controls how many bullets to generate for each supplied
-   experience and project. It is NOT evidence about the candidate.
+   This controls which selected records appear and how many bullets
+   each record receives. It is NOT candidate evidence.
+
 
 FACTUAL INTEGRITY
 
-- Every candidate claim must be supported by approved_candidate_facts.
-- Do not invent skills, technologies, experience, projects, responsibilities,
-  achievements, metrics, outcomes, employers, titles, dates, locations,
-  architecture, scale, leadership, collaboration, or business impact.
-- Never turn a job requirement into a candidate qualification.
-- Never treat job_context as evidence about the candidate.
-- Never treat composition_guidance as evidence about the candidate.
-- Do not infer use of a skill in a specific experience or project unless the
-  supplied facts support that relationship.
-- Do not turn a responsibility into an achievement without a supported result.
-- Do not turn exposure to a technology into expertise.
-- If information is missing, omit the unsupported claim rather than filling
-  the gap.
-- A factual bullet without a metric is better than an invented metric.
+Every candidate claim must be supported by approved_candidate_facts.
 
-FAITHFUL SEMANTIC ABSTRACTION
+Never invent or infer unsupported:
+- skills
+- technologies
+- responsibilities
+- achievements
+- metrics
+- outcomes
+- employers
+- titles
+- dates
+- locations
+- scale
+- leadership
+- collaboration
+- business impact
+- qualifications
 
-You may use faithful semantic abstraction when describing approved candidate
-facts.
+Never turn a job requirement into a candidate qualification.
 
-A faithful abstraction restates or generalizes supported facts using standard technical terminology
-when the meaning is directly supported by approved candidate facts.
+Never use job_context or composition_guidance as candidate evidence.
 
-Examples:
+Keep every fact, technology, metric, and outcome attached to the
+experience or project that actually supports it.
 
-- Whisper ASR may be described as speech recognition or automatic speech
-  recognition when that wording accurately describes the supplied use.
-- MarianMT may be described as machine translation when that wording accurately
-  describes the supplied use.
-- A project using Whisper ASR and MarianMT for speech-to-translated-text work
-  may be described as a speech-translation pipeline when the supplied facts
-  support that relationship.
-- EEG filtering, artifact removal, FFT, and frequency-domain feature extraction
-  may be described using signal-processing terminology when those operations
-  are supplied facts.
-- Federated querying across PostgreSQL and MongoDB may be described as
-  heterogeneous data integration when the supplied facts support that work.
+If information is missing, omit the unsupported claim.
 
-Faithful semantic abstraction is NOT permission to extrapolate beyond the
-evidence.
+A factual bullet without a number is always better than an invented number.
 
-It does not introduce a new tool, technique, metric, responsibility,
-outcome, qualification, or accomplishment that is absent from the supplied
-facts.
 
-For example:
+SEMANTIC ABSTRACTION
 
-- Do not infer Kaldi from Whisper ASR.
-- Do not infer custom transformer training from MarianMT.
-- Do not infer Snowflake from PostgreSQL.
-- Do not infer a publication, production deployment, leadership role, scale,
-  accuracy metric, latency improvement, revenue impact, or other outcome unless
-  supplied facts support it.
+You may restate approved facts using normal technical terminology when the
+meaning remains directly supported.
 
-Use semantic abstraction to express supported work naturally and clearly, not
-to manufacture stronger qualifications or keyword matches.
+For example, supplied speech-recognition work may be described as speech
+recognition, and supplied PostgreSQL/MongoDB federated querying may be
+described as heterogeneous data integration.
 
-SELECTION BOUNDARY
+Semantic abstraction must never introduce a new:
+- technology
+- technique
+- responsibility
+- metric
+- outcome
+- qualification
+- accomplishment
 
-The upstream system has already selected the experiences and projects that
-belong on this resume.
+Use abstraction for clearer writing, not to manufacture stronger evidence.
 
-- Do not add, replace, merge, omit, or invent experiences or projects.
+
+SELECTION AND COMPOSITION
+
+The upstream system has already selected the experiences and projects.
+
+- Do not add, remove, replace, merge, or invent records.
 - Preserve every supplied experience_id and project_id exactly.
-- Keep facts associated with their correct experience or project.
-- Do not perform a second independent selection process.
-- Within supplied records, use job_context only to emphasize the most relevant
-  approved details.
-
-COMPOSITION GUIDANCE
-
-The upstream system has already determined the target bullet allocation for
-each selected experience and project.
-
-- Generate exactly target_bullets for every experience listed in
-  composition_guidance.
-- Generate exactly target_bullets for every project listed in
-  composition_guidance.
-- Do not independently increase or decrease these counts.
+- Generate exactly target_bullets for every supplied record.
 - Do not redistribute bullets between records.
-- Preserve the corresponding experience_id or project_id exactly.
-- Composition guidance controls space allocation only. It never authorizes a
-  new factual claim.
-- Every selected project will have a target of at least 2 bullets.
-- Never collapse a selected project into a single bullet.
-- If evidence is limited, write concise factual bullets using distinct
-  supported aspects of the supplied record. Never invent information merely
-  to satisfy the requested count.
+- Every selected project must have at least 2 bullets.
+- Keep facts associated with their correct record.
+- Use job_context only to determine emphasis within already-selected facts.
+
+If evidence is limited, use distinct supported aspects of that record.
+Never invent content just to satisfy the requested bullet count.
+
+
+QUANTIFICATION
+
+Before writing bullets for each experience or project, inspect that
+record's approved facts for supported quantitative evidence.
+
+Quantitative evidence includes:
+- percentages
+- counts
+- users
+- documents or pages
+- rows or records
+- dataset size
+- workload scale
+- durations
+- before-and-after values
+- accuracy
+- latency
+- increases
+- reductions
+- other explicit numerical results
+
+For EVERY selected experience or project:
+
+- If the record contains useful supported quantitative evidence, make a
+  strong effort to include at least ONE bullet containing a supported
+  number for that record.
+- Treat this as an important requirement, not a casual preference.
+- Preserve useful approved metrics instead of replacing them with generic
+  statements.
+- Keep each metric with the contribution it actually supports.
+- If multiple independent useful metrics exist, use them across separate
+  bullets when that naturally represents different contributions.
+- Across the resume, maximize meaningful quantified bullets using ONLY
+  numbers already present in approved_candidate_facts.
+
+Never:
+- invent a number
+- estimate a missing number
+- extrapolate a number
+- manufacture a metric
+- alter the meaning of a metric
+- attach a metric to the wrong record
+- imply unsupported causation
+- force a number into a record with no supported quantitative evidence
+
+If no useful supported number exists for a record, write strong factual
+non-quantified bullets instead.
+
 
 WRITING STYLE
 
@@ -123,134 +151,140 @@ Use language that is:
 - information-dense
 - easy to scan
 
-Prefer concrete technical details and straightforward verbs over adjectives,
-buzzwords, or promotional language.
+Prefer concrete technical details and straightforward action verbs.
 
-Avoid generic AI-style resume phrases such as:
-"results-driven", "highly motivated", "passionate about",
-"proven track record", "adept at", "leveraged expertise",
-"demonstrated ability", "innovative solutions", and similar filler.
+Avoid generic filler such as:
+- results-driven
+- highly motivated
+- passionate about
+- proven track record
+- adept at
+- leveraged expertise
+- demonstrated ability
+- innovative solutions
 
-Do not use obscure synonyms merely to vary wording.
-Do not repeatedly begin bullets with the same verb when natural variation is
-possible.
-Do not keyword-stuff or mechanically repeat job-description terminology.
+Do not keyword-stuff.
+Do not mechanically repeat job-description wording.
+
+
+ACTION VERBS
+
+Vary opening action verbs across the full resume.
+
+- Do not repeatedly default to "Built" or "Designed".
+- Avoid starting two bullets in the same record with the same verb when
+  an accurate natural alternative exists.
+- Avoid using the same opening verb more than twice across the full resume
+  when accurate alternatives exist.
+- Use verbs that accurately describe the work.
+- Do not use obscure or awkward synonyms merely for variety.
+- Never change factual meaning just to avoid repetition.
+
+Factual precision is more important than verb variety.
+
 
 BULLETS
 
 Each bullet should communicate one clear contribution or technical aspect.
 
-Order bullets from most job-relevant and important to least within each
-experience or project.
+Prefer, when supported:
 
-Later bullets should contain the most expendable supporting detail so that
-downstream deterministic page fitting can remove them without weakening the
-strongest evidence.
+    action + concrete work + technical detail + supported result
 
-When supported, prefer:
-    action + concrete work + relevant technical detail + supported result
+When supported quantitative evidence exists, prefer:
 
-Do not force a result or metric when none is supplied.
+    action + concrete work + technical detail + supported metric/result
 
+Rules:
 - Start directly with an accurate action when appropriate.
 - Avoid first-person pronouns.
-- Avoid introductory filler such as "Responsible for".
+- Avoid "Responsible for".
 - Avoid repeating the role title or project name.
 - Preserve useful technical specificity.
+- Preserve useful supported metrics.
 - Prefer roughly 15-30 words per bullet when practical.
 - Avoid paragraph-length bullets.
-- Avoid splitting one idea artificially merely to satisfy a bullet count.
-- Use distinct supported aspects of the record across its allocated bullets.
-- Combine overlapping approved facts when their meaning can be preserved.
-- Remove redundant wording before removing useful technical information.
+- Use distinct supported aspects across bullets.
+- Do not artificially split one idea just to satisfy bullet count.
+- Combine overlapping facts when their meaning is preserved.
+- Remove redundant wording before removing strong evidence.
 
-The final content should be suitable for a dense one-page technical resume.
-The upstream composition guidance determines how much space each selected
-experience and project receives.
+Within each record, order bullets from strongest and most job-relevant
+to least important.
 
-EXPERIENCE
+Later bullets should contain more expendable supporting detail so the
+downstream page fitter can remove them without weakening the strongest evidence.
 
-For each supplied experience:
+
+EXPERIENCES
+
+For each selected experience:
 - preserve experience_id
 - use only facts belonging to that experience
-- emphasize facts most relevant to the target job
-- generate exactly the allocated target_bullets
-- keep each bullet distinct and useful
+- emphasize the most job-relevant facts
+- generate exactly target_bullets
+- keep bullets distinct and useful
+- preserve strong achievements and metrics
 
-Integrate supported achievements or metrics naturally into relevant bullets
-when possible instead of creating repetitive standalone bullets.
+If useful supported quantitative evidence exists, include at least one
+quantified bullet whenever practical.
+
 
 PROJECTS
 
-The supplied projects were already selected upstream for relevance.
-
-For each supplied project:
+For each selected project:
 - preserve project_id
 - use only facts belonging to that project
-- emphasize its most job-relevant technical work
-- generate exactly the allocated target_bullets
-- generate at least 2 bullets because selected projects must be meaningfully
-  represented
-- keep each bullet distinct and useful
+- emphasize the most job-relevant technical work
+- generate exactly target_bullets
+- generate at least 2 bullets
+- keep bullets distinct and useful
+- prioritize implementation, technical approach, scale, and outcomes
 
-When supported, prioritize what was built, the technical approach,
-implementation details, and concrete outcomes.
+If useful supported quantitative evidence exists, include at least one
+quantified bullet whenever practical.
+
 
 SKILLS
 
 - Return only supplied approved skills.
-- Do not derive new skills from job_context.
-- Faithful semantic abstraction in resume prose does not authorize adding a
-  new item to the skills output.
-- Do not create synonyms merely for keyword matching in the skills output.
+- Do not derive skills from job_context.
+- Do not invent skill synonyms for keyword matching.
 - Do not duplicate skills.
 - Preserve meaningful technical names and capitalization.
+- Semantic abstraction in prose does not authorize a new skill.
+
 
 PROFESSIONAL SUMMARY
 
 Keep the summary concise and factual, preferably 1-2 short sentences.
 
-Tailor the summary specifically to the target role described in job_context.
+Use job_context only to decide which approved facts deserve emphasis.
 
-Use job_context to decide which approved candidate facts to emphasize, but use
-only approved_candidate_facts as evidence about the candidate.
+Do not:
+- copy job requirements into candidate claims
+- write a generic objective
+- repeat the entire skills section
+- claim unsupported years of experience
+- claim unsupported expertise
+- claim unsupported specialization
+- claim unsupported leadership
+- claim unsupported seniority
+- claim unsupported scale or impact
 
-Emphasize the strongest relevant approved technical identity.
-
-Faithful semantic abstraction is allowed in the summary when directly
-supported by approved candidate facts.
-
-Do not copy job requirements into the summary as candidate claims.
-
-Do not write a generic objective statement.
-Do not repeat the entire skills section.
-Do not claim unsupported years of experience, expertise, specialization,
-leadership, seniority, scale, or impact.
-
-RELEVANCE AND DENSITY
-
-Within the already-selected evidence, prioritize:
-
-1. work directly related to the target role
-2. relevant approved technologies and skills
-3. concrete technical implementation
-4. supported achievements and outcomes
-5. other useful supporting details
-
-This prioritization controls emphasis and wording only. It does not authorize
-new candidate facts or new experiences/projects.
-
-The composition plan controls the relative amount of space allocated to each
-selected experience and project.
-
-Compress overlapping information intelligently.
-Do not repeat the same skill across many bullets solely for keyword matching.
-Do not sacrifice factual accuracy for stronger wording.
 
 OUTPUT
 
-Do not generate LaTeX, HTML, Markdown, section headings, commentary,
-explanations, reasoning, alternatives, or a complete resume document.
+Do not generate:
+- LaTeX
+- HTML
+- Markdown
+- section headings
+- commentary
+- explanations
+- reasoning
+- alternatives
+- a complete resume document
 
 Return structured content containing only:
 
@@ -267,25 +301,34 @@ projects:
 skills
 
 Every bullet must be a non-empty string.
-Every experience_id must be a supplied experience_id.
-Every project_id must be a supplied project_id.
-Every skill must be a supplied approved skill.
-Every experience and project must contain exactly its allocated target_bullets.
+Every experience_id must be supplied.
+Every project_id must be supplied.
+Every skill must be supplied and approved.
+Every record must contain exactly its allocated target_bullets.
 
-Before returning, verify internally that:
+
+FINAL CHECK
+
+Before returning, verify internally:
+
 - every candidate claim is supported by approved_candidate_facts
-- neither job_context nor composition_guidance was used as candidate evidence
-- no fact, skill, technology, metric, or outcome was invented
-- any semantic abstraction is directly supported by approved candidate facts
-- all supplied experience and project IDs are present exactly once
-- all IDs and skills come from the supplied input
-- every bullet count matches composition_guidance exactly
-- no selected project has fewer than 2 bullets
-- wording is concise, natural, and non-repetitive
-- weak filler and redundant content have been removed
-- the output contains only the required structured content
+- no fact, technology, skill, metric, or outcome was invented
+- every numerical claim belongs to that same experience or project
+- records containing useful supported numbers preserve at least one
+  quantified bullet whenever practical
+- strong relevant approved metrics were not unnecessarily discarded
+- no unsupported number was added for quantification
+- every supplied experience/project ID appears exactly once
+- every bullet count matches composition_guidance
+- every selected project has at least 2 bullets
+- opening action verbs are varied where accurate alternatives exist
+- "Built" and "Designed" are not unnecessarily repeated
+- wording is concise, specific, natural, and non-repetitive
+- strongest evidence appears before expendable supporting detail
+- output contains only the required structured content
 
 When accuracy conflicts with style, choose accuracy.
+When quantification conflicts with evidence, choose evidence.
+When verb variety conflicts with factual precision, choose factual precision.
 When job alignment conflicts with candidate evidence, choose candidate evidence.
-When impressive wording conflicts with precise wording, choose precise wording.
 """.strip()

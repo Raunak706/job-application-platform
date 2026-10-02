@@ -81,14 +81,14 @@ def test_classify_page_fit_reports_underfilled_when_too_much_space_remains():
     assert classify_page_fit(result) == "underfilled"
 
 
-def test_classify_page_fit_reports_target_when_page_is_well_filled():
+def test_classify_page_fit_reports_underfilled_at_95_percent():
     result = PageFitResult(
         page_count=1,
         content_height_points=684.0,
         usable_height_points=720.0,
     )
 
-    assert classify_page_fit(result) == "target"
+    assert classify_page_fit(result) == "underfilled"
 
 
 def test_classify_page_fit_treats_safe_near_full_page_as_target():
